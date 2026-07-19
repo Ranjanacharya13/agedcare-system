@@ -7,7 +7,6 @@ from backend.models.employee import EmployeeRole, EmploymentStatus
 
 
 class EmployeeCreate(BaseModel):
-    employee_number: str | None = None
     first_name: str
     last_name: str
     email: str | None = None
@@ -20,7 +19,6 @@ class EmployeeCreate(BaseModel):
 
 
 class EmployeeUpdate(BaseModel):
-    employee_number: str | None = None
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
@@ -34,7 +32,6 @@ class EmployeeUpdate(BaseModel):
 
 class EmployeeOut(BaseModel):
     id: UUID
-    employee_number: str | None = None
     first_name: str
     last_name: str
     email: str | None = None

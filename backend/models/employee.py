@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 
 class EmployeeRole(StrEnum):
-    CARE_PARTNER = "Care Partner"
-    CLINICAL_COORDINATOR = "Clinical Coordinator"
+    CARE_PLANNER = "Care Planner"
+    CARE_COORDINATOR = "Care Coordinator"
     REGISTERED_NURSE = "Registered Nurse"
     KITCHEN_STAFF = "Kitchen Staff"
     LAUNDRY_STAFF = "Laundry Staff"
@@ -24,7 +24,6 @@ class EmploymentStatus(StrEnum):
 
 class Employee(BaseModel):
     id: UUID | None = None
-    employee_number: str | None = None
     first_name: str
     last_name: str
     email: str | None = None
