@@ -1,0 +1,75 @@
+:root {
+  /* Brand — two-tone shell (teal + coral), richer/deeper than a flat fill */
+  --color-primary: #0d9488;
+  --color-primary-dark: #0f766e;
+  --color-primary-darker: #114b46;
+  --color-primary-light: #ecfdf9;
+  --color-primary-soft: #ccfbf1;
+  --color-on-primary: #ffffff;
+  --gradient-primary: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
+  --gradient-sidebar: linear-gradient(165deg, #114b46 0%, #0b3330 100%);
+
+  --color-secondary: #f0653e;
+  --color-secondary-dark: #c94f2d;
+  --color-secondary-light: #fff1ec;
+  --color-on-secondary: #3a1a10;
+  --gradient-secondary: linear-gradient(135deg, #f0653e 0%, #c94f2d 100%);
+
+  /* Neutrals / surfaces — cool slate scale */
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-faint: #94a3b8;
+
+  /* Semantic status tones — deliberate exception to two-tone, badges only */
+  --color-tone-neutral-bg: #f1f5f9;
+  --color-tone-neutral-text: #475569;
+  --color-tone-info-bg: #e0f2fe;
+  --color-tone-info-text: #0369a1;
+  --color-tone-success-bg: #dcfce7;
+  --color-tone-success-text: #15803d;
+  --color-tone-warning-bg: #fef3c7;
+  --color-tone-warning-text: #b45309;
+  --color-tone-danger-bg: #fee2e2;
+  --color-tone-danger-text: #b91c1c;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radius / shadow — bigger, softer, layered */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.14);
+  --shadow-focus: 0 0 0 3px var(--color-primary-soft);
+
+  /* Type */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.875rem;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 140ms var(--ease-out);
+  --transition-base: 220ms var(--ease-out);
+
+  /* Layout */
+  --sidebar-width: 256px;
+}

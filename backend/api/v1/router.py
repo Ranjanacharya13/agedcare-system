@@ -1,7 +1,16 @@
 from fastapi import APIRouter
 
 from backend.api import deps
-from backend.api.v1.endpoints import employees, health, medical_history, residents
+from backend.api.v1.endpoints import (
+    appointments,
+    complaints,
+    employees,
+    health,
+    medical_history,
+    residents,
+    risk_scores,
+    shift_suggestions,
+)
 from backend.api.v1.parent_scoped_router import build_parent_scoped_routers
 from backend.schemas.assistance import AssistanceCreate, AssistanceOut, AssistanceUpdate
 from backend.schemas.behaviour import BehaviourCreate, BehaviourOut, BehaviourUpdate
@@ -13,6 +22,7 @@ from backend.schemas.employee_availability import (
 )
 from backend.schemas.employee_contract import ContractCreate, ContractOut, ContractUpdate
 from backend.schemas.employee_leave import LeaveCreate, LeaveOut, LeaveUpdate
+from backend.schemas.employee_payroll_record import PayrollCreate, PayrollOut, PayrollUpdate
 from backend.schemas.employee_performance import (
     PerformanceCreate,
     PerformanceOut,
@@ -28,12 +38,15 @@ from backend.schemas.employee_registration import (
     RegistrationOut,
     RegistrationUpdate,
 )
+from backend.schemas.employee_shift import ShiftCreate, ShiftOut, ShiftUpdate
 from backend.schemas.employee_supervision import (
     SupervisionCreate,
     SupervisionOut,
     SupervisionUpdate,
 )
+from backend.schemas.employee_time_entry import TimeEntryCreate, TimeEntryOut, TimeEntryUpdate
 from backend.schemas.fall_risk import FallRiskCreate, FallRiskOut, FallRiskUpdate
+from backend.schemas.incident import IncidentCreate, IncidentOut, IncidentUpdate
 from backend.schemas.medical_inventory import (
     MedicalInventoryCreate,
     MedicalInventoryOut,
@@ -54,6 +67,10 @@ api_router.include_router(
     prefix="/residents/{resident_id}/medical-history",
     tags=["medical-history"],
 )
+api_router.include_router(complaints.router, prefix="/complaints", tags=["complaints"])
+api_router.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
+api_router.include_router(risk_scores.router, tags=["risk-scores"])
+api_router.include_router(shift_suggestions.router, tags=["shift-suggestions"])
 
 _RESIDENT_RESOURCES = [
     ("behaviour", BehaviourCreate, BehaviourUpdate, BehaviourOut, deps.get_behaviour_service),
@@ -81,6 +98,7 @@ _RESIDENT_RESOURCES = [
         MedicalInventoryOut,
         deps.get_medical_inventory_service,
     ),
+    ("incidents", IncidentCreate, IncidentUpdate, IncidentOut, deps.get_incident_service),
 ]
 
 _EMPLOYEE_RESOURCES = [
@@ -121,6 +139,15 @@ _EMPLOYEE_RESOURCES = [
         AvailabilityOut,
         deps.get_availability_service,
     ),
+    ("shifts", ShiftCreate, ShiftUpdate, ShiftOut, deps.get_shift_service),
+    (
+        "time-entries",
+        TimeEntryCreate,
+        TimeEntryUpdate,
+        TimeEntryOut,
+        deps.get_time_entry_service,
+    ),
+    ("payroll", PayrollCreate, PayrollUpdate, PayrollOut, deps.get_payroll_service),
 ]
 
 for _slug, _create, _update, _out, _get_service in _RESIDENT_RESOURCES:

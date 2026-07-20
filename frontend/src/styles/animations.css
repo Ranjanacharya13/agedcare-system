@@ -1,0 +1,57 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.fade-slide-in {
+  animation: fadeSlideIn var(--transition-base) var(--ease-out);
+}
+
+.page-transition {
+  animation: fadeSlideIn var(--transition-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-slide-in,
+  .page-transition,
+  .skeleton-line,
+  .modal-overlay,
+  .modal-card {
+    animation: none !important;
+  }
+}

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Generic, Protocol, TypeVar
 
 from fastapi import HTTPException, status
@@ -55,6 +56,8 @@ class ParentScopedService(Generic[ModelT]):
     async def update_record(self, parent_id: str, record_id: str, data: BaseModel) -> ModelT:
         await self.get_record(parent_id, record_id)
         updates = data.model_dump(mode="json", exclude_unset=True)
+        if "updated_at" in self._model.model_fields:
+            updates["updated_at"] = datetime.now(timezone.utc).isoformat()
         record = await self._repository.update(record_id, updates)
         if record is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, self._not_found_message)

@@ -10,22 +10,32 @@ from backend.models.bowel_chart import ResidentBowelChart
 from backend.models.employee_availability import EmployeeAvailability
 from backend.models.employee_contract import EmployeeContract
 from backend.models.employee_leave import EmployeeLeave
+from backend.models.employee_payroll_record import EmployeePayrollRecord
 from backend.models.employee_performance import EmployeePerformance
 from backend.models.employee_qualification import EmployeeQualification
 from backend.models.employee_registration import EmployeeRegistration
+from backend.models.employee_shift import EmployeeShift
 from backend.models.employee_supervision import EmployeeSupervision
+from backend.models.employee_time_entry import EmployeeTimeEntry
 from backend.models.fall_risk import ResidentFallRisk
+from backend.models.incident import ResidentIncident
 from backend.models.medical_inventory import ResidentMedicalInventory
 from backend.models.medication import ResidentMedication
 from backend.models.sleep_chart import ResidentSleepChart
+from backend.repositories.appointment_repository import AppointmentRepository
 from backend.repositories.base import SupabaseRepository
+from backend.repositories.complaint_repository import ComplaintRepository
 from backend.repositories.employee_repository import EmployeeRepository
 from backend.repositories.medical_history_repository import MedicalHistoryRepository
 from backend.repositories.resident_repository import ResidentRepository
+from backend.services.appointment_service import AppointmentService
 from backend.services.base import ParentScopedService
+from backend.services.complaint_service import ComplaintService
 from backend.services.employee_service import EmployeeService
 from backend.services.medical_history_service import MedicalHistoryService
 from backend.services.resident_service import ResidentService
+from backend.services.risk_scoring import RiskScoringService
+from backend.services.shift_matching import ShiftMatchingService
 
 
 def get_db() -> AsyncClient:
@@ -46,6 +56,25 @@ def get_medical_history_service() -> MedicalHistoryService:
     repository = MedicalHistoryRepository(get_db())
     resident_repository = ResidentRepository(get_db())
     return MedicalHistoryService(repository, resident_repository)
+
+
+def get_complaint_service() -> ComplaintService:
+    repository = ComplaintRepository(get_db())
+    return ComplaintService(repository)
+
+
+def get_appointment_service() -> AppointmentService:
+    repository = AppointmentRepository(get_db())
+    return AppointmentService(repository)
+
+
+def get_risk_scoring_service() -> RiskScoringService:
+    return RiskScoringService(get_db())
+
+
+def get_shift_matching_service() -> ShiftMatchingService:
+    client = get_db()
+    return ShiftMatchingService(client, RiskScoringService(client))
 
 
 def _make_scoped_service_getter(
@@ -101,6 +130,9 @@ get_medical_inventory_service = _make_scoped_service_getter(
     ResidentMedicalInventory,
     "created_at",
     "Medical inventory item not found",
+)
+get_incident_service = _make_scoped_service_getter(
+    "resident_incidents", ResidentIncident, "occurred_at", "Incident record not found"
 )
 
 # --- employee-scoped records ---
@@ -164,6 +196,33 @@ get_availability_service = _make_scoped_service_getter(
     EmployeeAvailability,
     None,
     "Availability record not found",
+    parent_field="employee_id",
+    parent_repository_factory=EmployeeRepository,
+    parent_not_found_message="Employee not found",
+)
+get_shift_service = _make_scoped_service_getter(
+    "employee_shifts",
+    EmployeeShift,
+    "shift_start",
+    "Shift record not found",
+    parent_field="employee_id",
+    parent_repository_factory=EmployeeRepository,
+    parent_not_found_message="Employee not found",
+)
+get_time_entry_service = _make_scoped_service_getter(
+    "employee_time_entries",
+    EmployeeTimeEntry,
+    "clock_in",
+    "Time entry not found",
+    parent_field="employee_id",
+    parent_repository_factory=EmployeeRepository,
+    parent_not_found_message="Employee not found",
+)
+get_payroll_service = _make_scoped_service_getter(
+    "employee_payroll_records",
+    EmployeePayrollRecord,
+    "pay_period_start",
+    "Payroll record not found",
     parent_field="employee_id",
     parent_repository_factory=EmployeeRepository,
     parent_not_found_message="Employee not found",
