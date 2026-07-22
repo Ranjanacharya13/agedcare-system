@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import Logo from "./Logo.jsx";
 import {
   IconDashboard,
@@ -7,9 +7,11 @@ import {
   IconComplaints,
   IconCalendar,
   IconPulse,
+  IconLogout,
 } from "./Icons.jsx";
 import { useAsync } from "../../hooks/useAsync.js";
 import { getHealth } from "../../api/health.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const links = [
   { to: "/admin", label: "Dashboard", end: true, Icon: IconDashboard },
@@ -22,6 +24,13 @@ const links = [
 export default function Nav() {
   const { data, error } = useAsync(() => getHealth(), []);
   const connected = Boolean(data?.status === "ok") && !error;
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <aside className="app-sidebar">
@@ -41,6 +50,19 @@ export default function Nav() {
           </NavLink>
         ))}
       </nav>
+      <div className="sidebar-user">
+        <span className="sidebar-user-avatar">{(user?.name || "?")[0]}</span>
+        <span className="sidebar-user-name">{user?.name || "Staff"}</span>
+        <button
+          type="button"
+          className="sidebar-logout-btn"
+          onClick={handleLogout}
+          title="Sign out"
+          aria-label="Sign out"
+        >
+          <IconLogout size={16} />
+        </button>
+      </div>
       <div className="app-sidebar-footer">
         <span className={`status-dot ${connected ? "status-dot-on" : "status-dot-off"}`} />
         <IconPulse size={16} />

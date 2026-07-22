@@ -1,7 +1,10 @@
 import { Routes, Route } from "react-router-dom";
 import AppShell from "./components/layout/AppShell.jsx";
 import { DirectoryProvider } from "./context/DirectoryContext.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import RequireAuth from "./components/auth/RequireAuth.jsx";
 import PublicLandingPage from "./pages/PublicLandingPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import ResidentsListPage from "./pages/ResidentsListPage.jsx";
 import ResidentDetailPage from "./pages/ResidentDetailPage.jsx";
@@ -13,26 +16,31 @@ import NotFoundPage from "./pages/NotFoundPage.jsx";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<PublicLandingPage />} />
-      <Route
-        path="/admin"
-        element={
-          <DirectoryProvider>
-            <AppShell />
-          </DirectoryProvider>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="residents" element={<ResidentsListPage />} />
-        <Route path="residents/:residentId/:tab?" element={<ResidentDetailPage />} />
-        <Route path="employees" element={<EmployeesListPage />} />
-        <Route path="employees/:employeeId/:tab?" element={<EmployeeDetailPage />} />
-        <Route path="complaints" element={<ComplaintsPage />} />
-        <Route path="appointments" element={<AppointmentsPage />} />
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<PublicLandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <DirectoryProvider>
+                <AppShell />
+              </DirectoryProvider>
+            </RequireAuth>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="residents" element={<ResidentsListPage />} />
+          <Route path="residents/:residentId/:tab?" element={<ResidentDetailPage />} />
+          <Route path="employees" element={<EmployeesListPage />} />
+          <Route path="employees/:employeeId/:tab?" element={<EmployeeDetailPage />} />
+          <Route path="complaints" element={<ComplaintsPage />} />
+          <Route path="appointments" element={<AppointmentsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
-      </Route>
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </AuthProvider>
   );
 }

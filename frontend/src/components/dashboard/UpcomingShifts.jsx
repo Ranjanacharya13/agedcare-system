@@ -6,7 +6,8 @@ import Skeleton from "../common/Skeleton.jsx";
 import ErrorBanner from "../common/ErrorBanner.jsx";
 import EmptyState from "../common/EmptyState.jsx";
 import StatusBadge from "../common/StatusBadge.jsx";
-import { formatDateTime } from "../../utils/format.js";
+import { formatRelativeDay } from "../../utils/format.js";
+import { IconClock } from "../layout/Icons.jsx";
 
 // Reads the flat GET-only /shifts list (backend/api/v1/parent_scoped_router.py
 // only registers GET on the flat path) -- purely for display, never for
@@ -39,7 +40,10 @@ export default function UpcomingShifts() {
                 </Link>
                 <span className="text-muted"> — {shift.role || "Unassigned role"}</span>
               </div>
-              <div className="shift-time">{formatDateTime(shift.shift_start)}</div>
+              <div className="shift-time">
+                <IconClock size={14} />
+                {formatRelativeDay(shift.shift_start)}
+              </div>
               <StatusBadge value={shift.status} badgeKind="shiftStatus" />
             </li>
           ))}

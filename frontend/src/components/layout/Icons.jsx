@@ -105,3 +105,52 @@ export function IconChevronDown(props) {
     </Svg>
   );
 }
+
+export function IconLogout(props) {
+  return (
+    <Svg {...props}>
+      <path d="M9 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H9" />
+      <path d="M14.2 15.8 19 11l-4.8-4.8" />
+      <path d="M19 11H9.2" />
+    </Svg>
+  );
+}
+
+export function IconArrowUpRight(props) {
+  return (
+    <Svg {...props}>
+      <path d="M7 17 17 7" />
+      <path d="M8.5 7H17v8.5" />
+    </Svg>
+  );
+}
+
+// Decorative mascot silhouette (built from overlapping primitives rather
+// than the stroke-line style above) -- used as a low-opacity watermark for
+// the "Aussie" brand touch, not as a functional stroke icon.
+export function IconKangaroo({ size = 96, className, style }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="currentColor"
+      stroke="none"
+      aria-hidden="true"
+      className={className}
+      style={style}
+    >
+      <ellipse cx="22" cy="70" rx="13" ry="6" transform="rotate(-25 22 70)" />
+      <ellipse cx="13" cy="76" rx="9" ry="4.2" transform="rotate(-35 13 76)" />
+      <ellipse cx="6" cy="80" rx="5" ry="2.4" transform="rotate(-40 6 80)" />
+      <ellipse cx="58" cy="78" rx="14" ry="10" transform="rotate(-5 58 78)" />
+      <rect x="58" y="79" width="34" height="11" rx="5.5" transform="rotate(-6 58 79)" />
+      <ellipse cx="90" cy="82" rx="4.5" ry="3" />
+      <ellipse cx="52" cy="55" rx="20" ry="26" transform="rotate(-10 52 55)" />
+      <rect x="44" y="44" width="6" height="16" rx="3" transform="rotate(10 47 52)" />
+      <circle cx="64" cy="27" r="11" />
+      <ellipse cx="70" cy="16" rx="4" ry="7.5" transform="rotate(18 70 16)" />
+      <ellipse cx="75" cy="30" rx="5" ry="3.6" />
+    </svg>
+  );
+}

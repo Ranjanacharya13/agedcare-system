@@ -23,9 +23,17 @@ export default function RiskScoreLeaderboard() {
           {data.slice(0, 10).map((entry, index) => (
             <li key={entry.resident_id} className="leaderboard-row">
               <span className="leaderboard-rank">{index + 1}</span>
-              <Link to={`/admin/residents/${entry.resident_id}/risk-score`} className="leaderboard-name">
-                {entry.first_name} {entry.last_name}
-              </Link>
+              <div className="leaderboard-main">
+                <Link to={`/admin/residents/${entry.resident_id}/risk-score`} className="leaderboard-name">
+                  {entry.first_name} {entry.last_name}
+                </Link>
+                <div className="leaderboard-bar-track">
+                  <div
+                    className={`leaderboard-bar-fill leaderboard-bar-${(entry.band || "low").toLowerCase()}`}
+                    style={{ width: `${Math.min(Math.max(entry.score, 0), 100)}%` }}
+                  />
+                </div>
+              </div>
               <span className="leaderboard-score">{entry.score}</span>
               <StatusBadge value={entry.band} badgeKind="riskBand" />
             </li>

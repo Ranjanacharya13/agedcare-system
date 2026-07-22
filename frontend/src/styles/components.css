@@ -48,11 +48,11 @@
 .btn-primary {
   background: var(--gradient-primary);
   color: var(--color-on-primary);
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.28);
+  box-shadow: 0 4px 12px rgba(55, 95, 130, 0.28);
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.36);
+  box-shadow: 0 6px 16px rgba(55, 95, 130, 0.36);
   transform: translateY(-1px);
 }
 
@@ -211,7 +211,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 15, 20, 0.5);
+  background: rgba(10, 20, 32, 0.52);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;

@@ -1,28 +1,37 @@
 :root {
-  /* Brand — two-tone shell (teal + coral), richer/deeper than a flat fill */
-  --color-primary: #0d9488;
-  --color-primary-dark: #0f766e;
-  --color-primary-darker: #114b46;
-  --color-primary-light: #ecfdf9;
-  --color-primary-soft: #ccfbf1;
+  /* Brand — Aussie sky & sand palette: warm sun-bleached sand fading up
+     through beach-shallows blue into deep ocean. The four "given" hues
+     (sand/sky-pale/sky/ocean) are used as-is for soft fills and gradient
+     stops; primary/secondary/darker shades are derived from them for
+     text-on-color contrast that the raw palette alone can't provide. */
+  --color-sand: #f9e8a2;
+  --color-sky-pale: #b4e1eb;
+  --color-sky: #95bdd7;
+  --color-ocean: #78a4cb;
+
+  --color-primary: #4a7ca6;
+  --color-primary-dark: #375f82;
+  --color-primary-darker: #16283a;
+  --color-primary-light: #eaf6f9;
+  --color-primary-soft: var(--color-sky-pale);
   --color-on-primary: #ffffff;
-  --gradient-primary: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
-  --gradient-sidebar: linear-gradient(165deg, #114b46 0%, #0b3330 100%);
+  --gradient-primary: linear-gradient(135deg, var(--color-sky) 0%, var(--color-primary) 100%);
+  --gradient-sidebar: linear-gradient(165deg, var(--color-primary-dark) 0%, var(--color-primary-darker) 100%);
 
-  --color-secondary: #f0653e;
-  --color-secondary-dark: #c94f2d;
-  --color-secondary-light: #fff1ec;
-  --color-on-secondary: #3a1a10;
-  --gradient-secondary: linear-gradient(135deg, #f0653e 0%, #c94f2d 100%);
+  --color-secondary: #e0a82e;
+  --color-secondary-dark: #b8891e;
+  --color-secondary-light: var(--color-sand);
+  --color-on-secondary: #4a3b10;
+  --gradient-secondary: linear-gradient(135deg, var(--color-sand) 0%, var(--color-secondary) 100%);
 
-  /* Neutrals / surfaces — cool slate scale */
-  --color-bg: #f8fafc;
+  /* Neutrals / surfaces — blue-grey scale tinted toward the sky palette */
+  --color-bg: #f6fafc;
   --color-surface: #ffffff;
-  --color-surface-alt: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-faint: #94a3b8;
+  --color-surface-alt: #eaf3f7;
+  --color-border: #d7e6ed;
+  --color-text: #16283a;
+  --color-text-muted: #55708a;
+  --color-text-faint: #94afc2;
 
   /* Semantic status tones — deliberate exception to two-tone, badges only */
   --color-tone-neutral-bg: #f1f5f9;
@@ -50,9 +59,9 @@
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.14);
+  --shadow-sm: 0 1px 2px rgba(22, 40, 58, 0.07);
+  --shadow-md: 0 8px 24px rgba(22, 40, 58, 0.09);
+  --shadow-lg: 0 20px 45px rgba(22, 40, 58, 0.16);
   --shadow-focus: 0 0 0 3px var(--color-primary-soft);
 
   /* Type */

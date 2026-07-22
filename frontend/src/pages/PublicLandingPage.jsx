@@ -4,6 +4,7 @@ import FormField from "../components/common/FormField.jsx";
 import Button from "../components/common/Button.jsx";
 import ErrorBanner from "../components/common/ErrorBanner.jsx";
 import Logo from "../components/layout/Logo.jsx";
+import { IconKangaroo } from "../components/layout/Icons.jsx";
 import { appointmentsConfig } from "../config/appointments.config.js";
 import { post } from "../api/client.js";
 import front1 from "../images/front1.jpg";
@@ -51,6 +52,7 @@ export default function PublicLandingPage() {
         </div>
 
         <div className="public-card fade-slide-in">
+          <IconKangaroo size={150} className="public-card-mascot" />
           <Logo tone="light" />
           <h1>Book a Visit</h1>
           <p className="text-muted">

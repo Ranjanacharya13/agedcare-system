@@ -24,10 +24,34 @@ export default function DashboardStats() {
 
   return (
     <div className="stat-grid">
-      <StatCard icon={<IconResidents size={20} />} label="Residents" value={residents.length} tone="primary" />
-      <StatCard icon={<IconEmployees size={20} />} label="Employees" value={employees.length} tone="secondary" />
-      <StatCard icon={<IconAlert size={20} />} label="High Priority Residents" value={highPriority} tone="danger" />
-      <StatCard icon={<IconComplaints size={20} />} label="Open Complaints" value={openComplaints} tone="info" />
+      <StatCard
+        icon={<IconResidents size={20} />}
+        label="Residents"
+        value={residents.length}
+        tone="primary"
+        to="/admin/residents"
+      />
+      <StatCard
+        icon={<IconEmployees size={20} />}
+        label="Employees"
+        value={employees.length}
+        tone="secondary"
+        to="/admin/employees"
+      />
+      <StatCard
+        icon={<IconAlert size={20} />}
+        label="High Priority Residents"
+        value={highPriority}
+        tone="danger"
+        to="/admin/residents"
+      />
+      <StatCard
+        icon={<IconComplaints size={20} />}
+        label="Open Complaints"
+        value={openComplaints}
+        tone="info"
+        to="/admin/complaints"
+      />
     </div>
   );
 }
