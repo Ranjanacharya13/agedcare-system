@@ -1,8 +1,21 @@
-// Maps enum literal values onto one of 5 semantic tones (not one CSS color
-// per literal -- ~30 literals across 8 enums would otherwise demand 30
-// custom properties). StatusBadge looks up value -> tone -> CSS vars.
-
 export const badgeTones = {
+  assignmentType: { Primary: "success", Secondary: "info", Relief: "neutral" },
+  accessRole: {
+    Admin: "danger",
+    Manager: "warning",
+    Nurse: "info",
+    "Care Worker": "success",
+    Family: "neutral",
+  },
+  auditAction: {
+    create: "success",
+    update: "info",
+    delete: "danger",
+    login: "neutral",
+    login_failed: "warning",
+    password_change: "info",
+    access_denied: "danger",
+  },
   riskBand: { Low: "success", Medium: "info", High: "warning", Critical: "danger" },
   incidentSeverity: { Low: "success", Medium: "info", High: "warning", Critical: "danger" },
   incidentStatus: {

@@ -1,6 +1,3 @@
-// Minimal hand-drawn stroke icon set (no icon library) — consistent 24x24
-// viewBox, 1.8 stroke width, rounded joins.
-
 const base = {
   fill: "none",
   stroke: "currentColor",
@@ -125,9 +122,38 @@ export function IconArrowUpRight(props) {
   );
 }
 
-// Decorative mascot silhouette (built from overlapping primitives rather
-// than the stroke-line style above) -- used as a low-opacity watermark for
-// the "Aussie" brand touch, not as a functional stroke icon.
+export function IconMenu(props) {
+  return (
+    <Svg {...props}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </Svg>
+  );
+}
+
+export function IconClose(props) {
+  return (
+    <Svg {...props}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </Svg>
+  );
+}
+
+export function IconCheck(props) {
+  return (
+    <Svg {...props}>
+      <path d="M5 12.5l4.5 4.5L19 7" />
+    </Svg>
+  );
+}
+
+export function IconPhone(props) {
+  return (
+    <Svg {...props}>
+      <path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a1.5 1.5 0 0 1-1.6 1.5A15.5 15.5 0 0 1 5 6.1 1.5 1.5 0 0 1 6.5 4.5z" />
+    </Svg>
+  );
+}
+
 export function IconKangaroo({ size = 96, className, style }) {
   return (
     <svg

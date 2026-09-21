@@ -1,8 +1,23 @@
+"""Resident risk score, using Simple Additive Weighting (SAW).
+
+    score = 100 x sum( weight_j x normalised_signal_j )
+
+Each signal is normalised to 0..1 (1 = highest risk, so here a high score means high risk,
+not "better"). The weights come from AHP (see config/risk_weights.py) and sum to 1.
+"""
+
 import asyncio
 from datetime import datetime, timedelta, timezone
 
 from supabase import AsyncClient
 
+from backend.config.risk_weights import (
+    BEHAVIOUR_LOOKBACK_DAYS,
+    BEHAVIOUR_SATURATION,
+    INCIDENT_LOOKBACK_DAYS,
+    INCIDENT_SATURATION,
+    RISK_WEIGHTS,
+)
 from backend.models.assistance import AssistanceLevel, ResidentAssistance
 from backend.models.behaviour import ResidentBehaviour
 from backend.models.fall_risk import ResidentFallRisk, RiskLevel
@@ -12,25 +27,22 @@ from backend.repositories.base import SupabaseRepository
 from backend.repositories.resident_repository import ResidentRepository
 from backend.schemas.risk_score import RiskScoreBreakdownItem, RiskScoreOut
 
-# Weighted-sum scoring algorithm: each signal contributes a fixed number of
-# points, the points are added up, then the total is clipped to 0-100. These
-# weights are a starting guess (not learned from data) -- tune by eye once
-# real resident history exists.
-COGNITIVE_STATUS_POINTS = {
-    CognitiveStatus.COGNITIVE: 0,
-    CognitiveStatus.NON_COGNITIVE: 10,
-    CognitiveStatus.DISABLED_COGNITIVE: 15,
-    CognitiveStatus.DISABLED_NON_COGNITIVE: 20,
+
+COGNITIVE_STATUS_SEVERITY = {
+    CognitiveStatus.COGNITIVE: 0.0,
+    CognitiveStatus.NON_COGNITIVE: 0.5,
+    CognitiveStatus.DISABLED_COGNITIVE: 0.75,
+    CognitiveStatus.DISABLED_NON_COGNITIVE: 1.0,
 }
-FALL_RISK_POINTS = {
-    RiskLevel.LOW: 0,
-    RiskLevel.MEDIUM: 15,
-    RiskLevel.HIGH: 30,
+FALL_RISK_SEVERITY = {
+    RiskLevel.LOW: 0.0,
+    RiskLevel.MEDIUM: 0.5,
+    RiskLevel.HIGH: 1.0,
 }
-ASSISTANCE_POINTS = {
-    AssistanceLevel.INDEPENDENT: 0,
-    AssistanceLevel.SINGLE_ASSIST: 10,
-    AssistanceLevel.DOUBLE_ASSIST: 20,
+ASSISTANCE_SEVERITY = {
+    AssistanceLevel.INDEPENDENT: 0.0,
+    AssistanceLevel.SINGLE_ASSIST: 0.5,
+    AssistanceLevel.DOUBLE_ASSIST: 1.0,
 }
 INCIDENT_SEVERITY_POINTS = {
     IncidentSeverity.LOW: 1,
@@ -38,13 +50,6 @@ INCIDENT_SEVERITY_POINTS = {
     IncidentSeverity.HIGH: 3,
     IncidentSeverity.CRITICAL: 5,
 }
-INCIDENT_POINTS_MULTIPLIER = 5
-INCIDENT_POINTS_CAP = 30
-INCIDENT_LOOKBACK_DAYS = 90
-
-BEHAVIOUR_POINTS_PER_EVENT = 5
-BEHAVIOUR_POINTS_CAP = 20
-BEHAVIOUR_LOOKBACK_DAYS = 30
 
 BAND_THRESHOLDS = (
     (75, "Critical"),
@@ -62,10 +67,14 @@ def _band_for_score(score: int) -> str:
 
 
 def _as_aware(dt: datetime) -> datetime:
-    # Some existing tables store `timestamp` (no timezone) rather than
-    # `timestamptz`, so Supabase can return naive datetimes here. Treat
-    # naive values as UTC rather than letting the comparison below crash.
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+
+def _saturating(value: float, ceiling: float) -> float:
+    """Map a count onto [0, 1], flattening once it reaches the ceiling."""
+    if ceiling <= 0:
+        return 0.0
+    return min(value / ceiling, 1.0)
 
 
 class RiskScoringService:
@@ -88,11 +97,6 @@ class RiskScoringService:
         resident_id = str(resident.id)
         now = datetime.now(timezone.utc)
 
-        breakdown: dict[str, RiskScoreBreakdownItem] = {}
-
-        # These four lookups are independent -- fetch them concurrently
-        # instead of one at a time, since each is a network round-trip to
-        # Supabase.
         fall_risk_records, incidents, assistance_records, behaviour_records = await asyncio.gather(
             self._fall_risk_repository.list_for_parent(resident_id, 0, 1),
             self._incident_repository.list_for_parent(resident_id, 0, 100),
@@ -100,48 +104,64 @@ class RiskScoringService:
             self._behaviour_repository.list_for_parent(resident_id, 0, 100),
         )
 
-        cognitive_points = COGNITIVE_STATUS_POINTS.get(resident.cognitive_status, 0)
-        breakdown["cognitive_status"] = RiskScoreBreakdownItem(
-            value=str(resident.cognitive_status) if resident.cognitive_status else "Unknown",
-            points=cognitive_points,
-        )
 
         latest_fall_risk = fall_risk_records[0].risk_level if fall_risk_records else None
-        fall_risk_points = FALL_RISK_POINTS.get(latest_fall_risk, 0)
-        breakdown["fall_risk"] = RiskScoreBreakdownItem(
-            value=str(latest_fall_risk) if latest_fall_risk else "No assessment on record",
-            points=fall_risk_points,
-        )
+        fall_severity = FALL_RISK_SEVERITY.get(latest_fall_risk, 0.0)
 
         cutoff = now - timedelta(days=INCIDENT_LOOKBACK_DAYS)
         recent_incidents = [i for i in incidents if _as_aware(i.occurred_at) >= cutoff]
-        raw_incident_points = sum(
+        incident_weight_total = sum(
             INCIDENT_SEVERITY_POINTS.get(i.severity, 0) for i in recent_incidents
-        ) * INCIDENT_POINTS_MULTIPLIER
-        incident_points = min(raw_incident_points, INCIDENT_POINTS_CAP)
-        breakdown["recent_incidents_90d"] = RiskScoreBreakdownItem(
-            value=f"{len(recent_incidents)} incident(s) in last {INCIDENT_LOOKBACK_DAYS} days",
-            points=incident_points,
         )
+        incident_severity = _saturating(incident_weight_total, INCIDENT_SATURATION)
 
         latest_assistance = assistance_records[0].assistance_level if assistance_records else None
-        assistance_points = ASSISTANCE_POINTS.get(latest_assistance, 0)
-        breakdown["assistance_level"] = RiskScoreBreakdownItem(
-            value=str(latest_assistance) if latest_assistance else "No assessment on record",
-            points=assistance_points,
-        )
+        assistance_severity = ASSISTANCE_SEVERITY.get(latest_assistance, 0.0)
+
+        cognitive_severity = COGNITIVE_STATUS_SEVERITY.get(resident.cognitive_status, 0.0)
 
         behaviour_cutoff = now - timedelta(days=BEHAVIOUR_LOOKBACK_DAYS)
         recent_behaviour_count = sum(
             1 for b in behaviour_records if _as_aware(b.recorded_at) >= behaviour_cutoff
         )
-        behaviour_points = min(
-            recent_behaviour_count * BEHAVIOUR_POINTS_PER_EVENT, BEHAVIOUR_POINTS_CAP
-        )
-        breakdown["recent_behaviour_30d"] = RiskScoreBreakdownItem(
-            value=f"{recent_behaviour_count} event(s) in last {BEHAVIOUR_LOOKBACK_DAYS} days",
-            points=behaviour_points,
-        )
+        behaviour_severity = _saturating(recent_behaviour_count, BEHAVIOUR_SATURATION)
+
+
+        signals = {
+            "fall_risk": (
+                fall_severity,
+                str(latest_fall_risk) if latest_fall_risk else "No assessment on record",
+            ),
+            "recent_incidents": (
+                incident_severity,
+                f"{len(recent_incidents)} incident(s) in last {INCIDENT_LOOKBACK_DAYS} days"
+                f" (severity total {incident_weight_total})",
+            ),
+            "assistance_level": (
+                assistance_severity,
+                str(latest_assistance) if latest_assistance else "No assessment on record",
+            ),
+            "cognitive_status": (
+                cognitive_severity,
+                str(resident.cognitive_status) if resident.cognitive_status else "Unknown",
+            ),
+            "recent_behaviour": (
+                behaviour_severity,
+                f"{recent_behaviour_count} event(s) in last {BEHAVIOUR_LOOKBACK_DAYS} days",
+            ),
+        }
+
+        # SAW: multiply each normalised signal by its weight. Points = 100 x weight x signal,
+        # so the points add up to the 0..100 score.
+        breakdown: dict[str, RiskScoreBreakdownItem] = {}
+        for name, (severity, description) in signals.items():
+            weight = RISK_WEIGHTS[name]
+            breakdown[name] = RiskScoreBreakdownItem(
+                value=description,
+                points=round(100 * weight * severity),
+                weight=round(weight, 4),
+                normalised=round(severity, 4),
+            )
 
         total = min(sum(item.points for item in breakdown.values()), 100)
 
@@ -162,7 +182,5 @@ class RiskScoringService:
 
     async def list_scores(self, skip: int = 0, limit: int = 100) -> list[RiskScoreOut]:
         residents = await self._resident_repository.list_all(skip, limit)
-        # Each resident's score is independent, so compute them concurrently
-        # rather than awaiting one at a time.
         scores = await asyncio.gather(*(self.score_resident(r) for r in residents))
         return sorted(scores, key=lambda s: s.score, reverse=True)

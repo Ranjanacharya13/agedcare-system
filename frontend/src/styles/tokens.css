@@ -1,49 +1,92 @@
 :root {
-  /* Brand — Aussie sky & sand palette: warm sun-bleached sand fading up
-     through beach-shallows blue into deep ocean. The four "given" hues
-     (sand/sky-pale/sky/ocean) are used as-is for soft fills and gradient
-     stops; primary/secondary/darker shades are derived from them for
-     text-on-color contrast that the raw palette alone can't provide. */
-  --color-sand: #f9e8a2;
-  --color-sky-pale: #b4e1eb;
-  --color-sky: #95bdd7;
-  --color-ocean: #78a4cb;
+  /* ------------------------------------------------------------------ */
+  /* Brand — warm plum + flame, in the manner of large Australian care    */
+  /* providers (vmch.com.au). A deep, dignified plum carries structure    */
+  /* (headers, sidebar, footer); a single hot flame-orange carries        */
+  /* emphasis (section titles, primary CTAs); a family of peach/sand      */
+  /* accents fills the soft bands between them. Warm greys throughout —   */
+  /* no cool blue-grey anywhere, which is what makes the palette read as  */
+  /* human rather than clinical.                                          */
+  /* ------------------------------------------------------------------ */
 
-  --color-primary: #4a7ca6;
-  --color-primary-dark: #375f82;
-  --color-primary-darker: #16283a;
-  --color-primary-light: #eaf6f9;
-  --color-primary-soft: var(--color-sky-pale);
+  /* Plum ramp */
+  --color-plum-400: #5f3546;
+  --color-plum-500: #4c2736;
+  --color-plum-700: #391d29;
+  --color-plum-800: #2e1821;
+
+  /* Flame ramp */
+  --color-flame-300: #f27a59;
+  --color-flame-500: #eb3300;
+  --color-flame-600: #c72b00;
+
+  /* Peach / sand accents */
+  --color-accent-100: #fcf4ed;
+  --color-accent-200: #f9e8dc;
+  --color-accent-300: #f5d7c1;
+  --color-accent-500: #f1c6a7;
+
+  /* Warm neutral ramp */
+  --color-neutral-0: #ffffff;
+  --color-neutral-100: #f3f2f1;
+  --color-neutral-200: #e7e4e2;
+  --color-neutral-300: #dcd7d4;
+  --color-neutral-500: #c4bcb7;
+  --color-neutral-600: #938d89;
+  --color-neutral-700: #625e5c;
+  --color-neutral-800: #272625;
+
+  --color-sand: var(--color-accent-300);
+  --color-sky-pale: var(--color-accent-200);
+  --color-sky: var(--color-accent-500);
+  --color-ocean: var(--color-plum-400);
+
+  /* Semantic roles */
+  --color-primary: var(--color-plum-500);
+  --color-primary-dark: var(--color-plum-700);
+  --color-primary-darker: var(--color-plum-800);
+  --color-primary-light: var(--color-accent-100);
+  --color-primary-soft: var(--color-accent-300);
   --color-on-primary: #ffffff;
-  --gradient-primary: linear-gradient(135deg, var(--color-sky) 0%, var(--color-primary) 100%);
-  --gradient-sidebar: linear-gradient(165deg, var(--color-primary-dark) 0%, var(--color-primary-darker) 100%);
+  --gradient-primary: linear-gradient(135deg, var(--color-plum-400) 0%, var(--color-plum-700) 100%);
+  --gradient-sidebar: linear-gradient(165deg, var(--color-plum-700) 0%, var(--color-plum-800) 100%);
 
-  --color-secondary: #e0a82e;
-  --color-secondary-dark: #b8891e;
-  --color-secondary-light: var(--color-sand);
-  --color-on-secondary: #4a3b10;
-  --gradient-secondary: linear-gradient(135deg, var(--color-sand) 0%, var(--color-secondary) 100%);
+  --color-secondary: var(--color-flame-500);
+  --color-secondary-dark: var(--color-flame-600);
+  --color-secondary-light: var(--color-flame-300);
+  --color-on-secondary: #ffffff;
+  --gradient-secondary: linear-gradient(135deg, var(--color-flame-300) 0%, var(--color-flame-500) 100%);
 
-  /* Neutrals / surfaces — blue-grey scale tinted toward the sky palette */
-  --color-bg: #f6fafc;
+  /* Surfaces */
+  --color-bg: var(--color-neutral-100);
   --color-surface: #ffffff;
-  --color-surface-alt: #eaf3f7;
-  --color-border: #d7e6ed;
-  --color-text: #16283a;
-  --color-text-muted: #55708a;
-  --color-text-faint: #94afc2;
+  --color-surface-alt: var(--color-accent-100);
+  --color-border: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  --color-text: var(--color-neutral-800);
+  --color-text-muted: var(--color-neutral-700);
+  --color-text-faint: var(--color-neutral-600);
 
-  /* Semantic status tones — deliberate exception to two-tone, badges only */
-  --color-tone-neutral-bg: #f1f5f9;
-  --color-tone-neutral-text: #475569;
-  --color-tone-info-bg: #e0f2fe;
-  --color-tone-info-text: #0369a1;
-  --color-tone-success-bg: #dcfce7;
-  --color-tone-success-text: #15803d;
-  --color-tone-warning-bg: #fef3c7;
-  --color-tone-warning-text: #b45309;
-  --color-tone-danger-bg: #fee2e2;
-  --color-tone-danger-text: #b91c1c;
+  /* Semantic status tones — warmed to sit with the palette */
+  --color-tone-neutral-bg: var(--color-neutral-100);
+  --color-tone-neutral-text: var(--color-neutral-700);
+  --color-tone-info-bg: var(--color-accent-200);
+  --color-tone-info-text: var(--color-plum-700);
+  --color-tone-success-bg: #e3efe4;
+  --color-tone-success-text: #256b3a;
+  --color-tone-warning-bg: var(--color-accent-300);
+  --color-tone-warning-text: #8a4a12;
+  --color-tone-danger-bg: #fbe3dc;
+  --color-tone-danger-text: var(--color-flame-600);
+
+  --tone-cognitive-tint: #e4ecdf;
+  --tone-cognitive-soft: #cddcc5;
+  --tone-cognitive-mid: #8aa584;
+  --tone-cognitive-deep: #3f5a3b;
+  --tone-non-cognitive-tint: #f6e6e8;
+  --tone-non-cognitive-soft: #ecd0d4;
+  --tone-non-cognitive-mid: #b36a75;
+  --tone-non-cognitive-deep: #6e2a36;
 
   /* Spacing */
   --space-1: 4px;
@@ -54,25 +97,28 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  /* Radius / shadow — bigger, softer, layered */
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
   --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(22, 40, 58, 0.07);
-  --shadow-md: 0 8px 24px rgba(22, 40, 58, 0.09);
-  --shadow-lg: 0 20px 45px rgba(22, 40, 58, 0.16);
-  --shadow-focus: 0 0 0 3px var(--color-primary-soft);
+  --shadow-sm: 0 1px 2px rgba(46, 24, 33, 0.07);
+  --shadow-md: 0 8px 24px rgba(46, 24, 33, 0.08);
+  --shadow-lg: 0 20px 45px rgba(46, 24, 33, 0.14);
+  --shadow-focus: 0 0 0 3px var(--color-accent-300);
 
-  /* Type */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+  --font-sans: "Figtree", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-display: "Archivo", "Figtree", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   --font-size-xs: 0.75rem;
-  --font-size-sm: 0.8125rem;
-  --font-size-base: 0.9375rem;
-  --font-size-lg: 1.125rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.1875rem;
   --font-size-xl: 1.5rem;
-  --font-size-2xl: 1.875rem;
+  --font-size-2xl: 2rem;
+  --font-weight-body: 400;
+  --font-weight-heading: 500;
+  --font-weight-display: 600;
 
   /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

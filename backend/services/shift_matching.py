@@ -1,7 +1,11 @@
+"""Ranking employees for a shift: SAW for the soft criteria, lexicographic ranking on top."""
+
 import asyncio
 
 from supabase import AsyncClient
 
+from backend.algorithms.lexicographic import rank
+from backend.algorithms.saw import calculate_saw_score, normalize_all, saw_breakdown
 from backend.models.employee_shift import EmployeeShift
 from backend.repositories.base import SupabaseRepository
 from backend.repositories.employee_repository import EmployeeRepository
@@ -9,12 +13,46 @@ from backend.schemas.shift_suggestion import ShiftSuggestionOut
 from backend.services.employee_care_load import get_employee_care_load
 from backend.services.risk_scoring import RiskScoringService
 
-# Greedy algorithm: visit every active, role-matching employee once, mark
-# whether they already have a time-overlapping shift that week, and rank by
-# (1) no conflict first, (2) lowest recent care-load score -- so we don't
-# stack more high-risk residents onto someone already covering several --
-# then (3) lowest already-scheduled hours that week. Advisory only -- nothing
-# is auto-assigned, a human still creates the actual employee_shifts record.
+# SAW weights (soft criteria only, both are costs: lower is better). Sum to 1.0.
+# Same 1.0 : 0.6 balance the old cost model used, scaled to sum to 1.
+SHIFT_WEIGHTS = {
+    "care_load": 0.625,  # sum of risk scores of residents the employee recently cared for
+    "weekly_hours": 0.375,  # hours already worked in the shift's week
+}
+
+# Lexicographic priority, most important first: (field, higher_is_better).
+# Conflict and role are hard conditions, so they are NOT SAW weights.
+SHIFT_PRIORITY = (
+    ("conflict", False),  # 1. no overlapping shift first
+    ("role_match", True),  # 2. shift's role matches the employee's role
+    ("saw_score", True),  # 3. best SAW score
+    ("care_load", False),  # 4. tie-break: lower care load
+    ("week_hours", False),  # 5. tie-break: fewer weekly hours
+)
+
+
+def role_matches(employee, shift: EmployeeShift) -> bool:
+    return not (shift.role and employee.role and str(employee.role) != shift.role)
+
+
+def rank_shift_candidates(rows: list[dict]) -> list[dict]:
+    """rows need: conflict, role_match, care_load, week_hours. Returns them ranked, best first."""
+    # Normalise each cost criterion (lower value -> closer to 1).
+    care_n = normalize_all([r["care_load"] for r in rows])
+    hours_n = normalize_all([r["week_hours"] for r in rows])
+    for row, care, hours in zip(rows, care_n, hours_n):
+        normalised = {"care_load": care, "weekly_hours": hours}
+        # SAW score: higher value means a better candidate.
+        row["saw_score"] = calculate_saw_score(normalised, SHIFT_WEIGHTS)
+        row["breakdown"] = saw_breakdown(
+            normalised,
+            SHIFT_WEIGHTS,
+            {"care_load": row["care_load"], "weekly_hours": round(row["week_hours"], 2)},
+        )
+    ranked = rank(rows, SHIFT_PRIORITY)
+    for position, row in enumerate(ranked, start=1):
+        row["rank"] = position
+    return ranked
 
 
 class ShiftMatchingService:
@@ -35,28 +73,30 @@ class ShiftMatchingService:
         target_week = target.shift_start.isocalendar()[:2]
         employees = await self._employee_repository.list_all(0, 1000)
 
-        candidates = [
-            employee
-            for employee in employees
-            if employee.id != target.employee_id
-            and employee.active
-            and not (target.role and employee.role and str(employee.role) != target.role)
+        # Inactive employees are rejected outright.
+        candidates = [e for e in employees if e.active and e.id != target.employee_id]
+        rows = await asyncio.gather(
+            *(self._build_row(e, target, target_week) for e in candidates)
+        )
+        return [
+            ShiftSuggestionOut(
+                employee_id=r["employee"].id,
+                first_name=r["employee"].first_name,
+                last_name=r["employee"].last_name,
+                role=str(r["employee"].role) if r["employee"].role else None,
+                current_week_hours=round(r["week_hours"], 2),
+                conflict=r["conflict"],
+                care_load_score=r["care_load"],
+                residents_cared_for_recently=r["residents"],
+                role_match=r["role_match"],
+                saw_score=round(r["saw_score"], 4),
+                rank=r["rank"],
+                breakdown=r["breakdown"],
+            )
+            for r in rank_shift_candidates(list(rows))
         ]
 
-        # Each candidate's conflict/hours/care-load lookup is independent, so
-        # run them concurrently rather than one at a time -- this loop does
-        # several Supabase round-trips per candidate (shift history + a
-        # care-load computation that itself scores every recently-touched
-        # resident), which adds up fast serially.
-        suggestions = await asyncio.gather(
-            *(self._build_suggestion(employee, target, target_week) for employee in candidates)
-        )
-
-        suggestions = list(suggestions)
-        suggestions.sort(key=lambda s: (s.conflict, s.care_load_score, s.current_week_hours))
-        return suggestions
-
-    async def _build_suggestion(self, employee, target, target_week) -> ShiftSuggestionOut:
+    async def _build_row(self, employee, target, target_week) -> dict:
         other_shifts = await self._shift_repository.list_for_parent(str(employee.id), 0, 200)
         conflict = any(
             s.shift_start < target.shift_end and s.shift_end > target.shift_start
@@ -67,16 +107,14 @@ class ShiftMatchingService:
             for s in other_shifts
             if s.shift_start.isocalendar()[:2] == target_week
         )
-        care_load_score, residents_cared_for = await get_employee_care_load(
+        care_load, residents = await get_employee_care_load(
             str(employee.id), self._client, self._risk_scoring_service
         )
-        return ShiftSuggestionOut(
-            employee_id=employee.id,
-            first_name=employee.first_name,
-            last_name=employee.last_name,
-            role=str(employee.role) if employee.role else None,
-            current_week_hours=round(week_hours, 2),
-            conflict=conflict,
-            care_load_score=care_load_score,
-            residents_cared_for_recently=residents_cared_for,
-        )
+        return {
+            "employee": employee,
+            "conflict": conflict,
+            "role_match": role_matches(employee, target),
+            "care_load": care_load,
+            "week_hours": week_hours,
+            "residents": residents,
+        }

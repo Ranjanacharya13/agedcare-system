@@ -68,3 +68,34 @@ class ParentScopedService(Generic[ModelT]):
         deleted = await self._repository.delete(record_id)
         if not deleted:
             raise HTTPException(status.HTTP_404_NOT_FOUND, self._not_found_message)
+
+
+class CrudService(Generic[ModelT]):
+    def __init__(self, repository: SupabaseRepository[ModelT], model: type[ModelT], name: str):
+        self._repository = repository
+        self._model = model
+        self._not_found = f"{name} not found"
+
+    async def create(self, data: BaseModel) -> ModelT:
+        return await self._repository.create(self._model(**data.model_dump()))
+
+    async def get(self, record_id: str) -> ModelT:
+        record = await self._repository.get_by_id(record_id)
+        if record is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, self._not_found)
+        return record
+
+    async def list(self, skip: int = 0, limit: int = 100) -> list[ModelT]:
+        return await self._repository.list_all(skip, limit)
+
+    async def update(self, record_id: str, data: BaseModel) -> ModelT:
+        updates = data.model_dump(mode="json", exclude_unset=True)
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        record = await self._repository.update(record_id, updates)
+        if record is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, self._not_found)
+        return record
+
+    async def delete(self, record_id: str) -> None:
+        if not await self._repository.delete(record_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, self._not_found)

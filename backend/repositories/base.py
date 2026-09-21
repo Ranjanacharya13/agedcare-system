@@ -3,10 +3,12 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel
 from supabase import AsyncClient
 
+from backend.repositories.audited import AuditedRepository
+
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
-class SupabaseRepository(Generic[ModelT]):
+class SupabaseRepository(AuditedRepository, Generic[ModelT]):
     def __init__(
         self,
         client: AsyncClient,
@@ -16,6 +18,7 @@ class SupabaseRepository(Generic[ModelT]):
         parent_field: str = "resident_id",
     ):
         self._table = client.table(table_name)
+        self._audit_table = table_name
         self._model = model
         self._order_column = order_column
         self._parent_field = parent_field
@@ -28,7 +31,9 @@ class SupabaseRepository(Generic[ModelT]):
     async def create(self, record: ModelT) -> ModelT:
         doc = record.model_dump(mode="json", exclude={"id"})
         response = await self._table.insert(doc).execute()
-        return self._model(**response.data[0])
+        created = self._model(**response.data[0])
+        await self._audit_create(created)
+        return created
 
     async def get_by_id(self, record_id: str) -> ModelT | None:
         response = await self._table.select("*").eq("id", record_id).maybe_single().execute()
@@ -47,9 +52,18 @@ class SupabaseRepository(Generic[ModelT]):
         return [self._model(**row) for row in response.data]
 
     async def update(self, record_id: str, updates: dict) -> ModelT | None:
+        before = await self.get_by_id(record_id)
         response = await self._table.update(updates).eq("id", record_id).execute()
-        return self._model(**response.data[0]) if response.data else None
+        if not response.data:
+            return None
+        updated = self._model(**response.data[0])
+        await self._audit_update(record_id, before, updated)
+        return updated
 
     async def delete(self, record_id: str) -> bool:
+        before = await self.get_by_id(record_id)
         response = await self._table.delete().eq("id", record_id).execute()
-        return bool(response.data)
+        deleted = bool(response.data)
+        if deleted:
+            await self._audit_delete(record_id, before)
+        return deleted

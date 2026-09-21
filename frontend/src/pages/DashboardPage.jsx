@@ -1,5 +1,5 @@
 import DashboardStats from "../components/dashboard/DashboardStats.jsx";
-import RiskScoreLeaderboard from "../components/dashboard/RiskScoreLeaderboard.jsx";
+import DailyShiftCalendar from "../components/dashboard/DailyShiftCalendar.jsx";
 import UpcomingShifts from "../components/dashboard/UpcomingShifts.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { IconKangaroo } from "../components/layout/Icons.jsx";
@@ -31,8 +31,8 @@ export default function DashboardPage() {
         <p className="text-muted">Here's what's happening across the facility today.</p>
       </div>
       <DashboardStats />
+      <DailyShiftCalendar />
       <div className="dashboard-grid">
-        <RiskScoreLeaderboard />
         <UpcomingShifts />
       </div>
     </div>

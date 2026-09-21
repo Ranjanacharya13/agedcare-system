@@ -16,18 +16,11 @@ function optionLabel(item, labelFields) {
     .trim() || item.id;
 }
 
-// Only three reference shapes exist in this schema: a global lookup against
-// the app-wide residents/employees directory, or a parent-scoped lookup
-// (currently only time_entries.shift_id, against the current employee's own
-// shifts). Anything free-text-shaped (e.g. medications.prescribed_by) is
-// never routed through this component -- it's a plain text field.
 export default function ReferenceSelect({ field, value, onChange, parentId }) {
   const { resource, scope, labelFields } = field.reference;
   const [query, setQuery] = useState("");
   const { residents, employees } = useDirectory();
 
-  // The only parent-scoped reference in this schema is time_entries.shift_id,
-  // which always looks up the current employee's own shifts.
   const parentScopedApi = useMemo(
     () => (scope === "parent" ? createResourceApi({ slug: resource, parent: { resource: "employees" } }) : null),
     [scope, resource]

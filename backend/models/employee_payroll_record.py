@@ -12,8 +12,6 @@ class PayrollStatus(StrEnum):
 
 
 class EmployeePayrollRecord(BaseModel):
-    # Totals/gross/net are recorded, not computed. Aggregating employee_time_entries
-    # (hours) x employee_contracts.hourly_rate into these fields is a future enhancement.
     id: UUID | None = None
     employee_id: UUID | None = None
     pay_period_start: date

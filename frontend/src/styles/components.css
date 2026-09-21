@@ -48,11 +48,11 @@
 .btn-primary {
   background: var(--gradient-primary);
   color: var(--color-on-primary);
-  box-shadow: 0 4px 12px rgba(55, 95, 130, 0.28);
+  box-shadow: 0 4px 12px rgba(46, 24, 33, 0.24);
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 6px 16px rgba(55, 95, 130, 0.36);
+  box-shadow: 0 6px 16px rgba(46, 24, 33, 0.32);
   transform: translateY(-1px);
 }
 
@@ -73,7 +73,7 @@
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #fdd3d1;
+  background: #f7d2c6;
 }
 
 /* Table */
@@ -172,9 +172,6 @@
   color: var(--color-tone-danger-text);
 }
 
-/* Tabs — pill style. Wraps onto multiple lines rather than scrolling
-   horizontally, since a resident/employee can have 10+ tabs and a hidden,
-   unscrolled-to tab is worse than a second row. */
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -211,7 +208,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 20, 32, 0.52);
+  background: rgba(46, 24, 33, 0.52);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;

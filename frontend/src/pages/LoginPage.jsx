@@ -10,7 +10,7 @@ export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -21,19 +21,17 @@ export default function LoginPage() {
     if (isAuthenticated) navigate(from, { replace: true });
   }, [isAuthenticated, from, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    // Small artificial delay so the sign-in feels like it's actually
-    // checking something, rather than an instant local if-check.
-    setTimeout(() => {
-      const ok = login(username, password);
-      if (!ok) {
-        setError({ message: "Invalid username or password." });
-        setSubmitting(false);
-      }
-    }, 350);
+    try {
+      await login(email, password);
+      // The effect above redirects once the context updates.
+    } catch (err) {
+      setError({ message: err.message || "Could not sign you in." });
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -47,14 +45,15 @@ export default function LoginPage() {
         <form className="resource-form" onSubmit={handleSubmit}>
           <ErrorBanner error={error} />
           <div className="form-field">
-            <label className="form-field-label" htmlFor="login-username">
-              Username
+            <label className="form-field-label" htmlFor="login-email">
+              Email
             </label>
             <input
-              id="login-username"
+              id="login-email"
+              type="email"
               className="input-text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               autoFocus
               autoComplete="username"
               required
@@ -80,7 +79,8 @@ export default function LoginPage() {
         </form>
 
         <p className="login-hint">
-          Demo credentials: <code>admin</code> / <code>careos123</code>
+          No account? Ask an administrator to create one for you — accounts are
+          issued, not self-registered.
         </p>
 
         <Link to="/" className="login-back-link">

@@ -7,7 +7,14 @@ import Button from "../common/Button.jsx";
 import Skeleton from "../common/Skeleton.jsx";
 import ErrorBanner from "../common/ErrorBanner.jsx";
 
-export default function ResourcePanel({ resource, parentId, extraRowActions, onRowClick, hideAdd }) {
+export default function ResourcePanel({
+  resource,
+  parentId,
+  extraRowActions,
+  onRowClick,
+  hideAdd,
+  onChanged,
+}) {
   const { items, loading, error, create, update, remove } = useApiResource(resource, parentId);
   const [editingRecord, setEditingRecord] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -30,11 +37,13 @@ export default function ResourcePanel({ resource, parentId, extraRowActions, onR
       await create(values);
     }
     setShowForm(false);
+    onChanged?.();
   };
 
   const confirmDelete = async () => {
     await remove(deleteTarget.id);
     setDeleteTarget(null);
+    onChanged?.();
   };
 
   return (

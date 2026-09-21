@@ -4,14 +4,14 @@ export default function Logo({ size = 34, withWordmark = true, tone = "light" })
       <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
         <defs>
           <linearGradient id="logoBg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#95bdd7" />
-            <stop offset="100%" stopColor="#375f82" />
+            <stop offset="0%" stopColor="#5f3546" />
+            <stop offset="100%" stopColor="#2e1821" />
           </linearGradient>
         </defs>
-        <rect width="32" height="32" rx="10" fill="url(#logoBg)" />
-        {/* Kangaroo silhouette mascot mark -- sand-yellow against the ocean
-            badge for a bit of Aussie beach-at-dusk contrast. */}
-        <g fill="var(--color-sand)">
+        <rect width="32" height="32" rx="6" fill="url(#logoBg)" />
+        {/* Kangaroo silhouette mascot mark -- warm peach against the plum
+            badge, so the mark reads at small sizes on both light and dark. */}
+        <g fill="#f5d7c1">
           <ellipse cx="9" cy="23" rx="6" ry="2.6" transform="rotate(-30 9 23)" />
           <ellipse cx="17" cy="18" rx="6.5" ry="8" transform="rotate(-12 17 18)" />
           <rect x="15.5" y="14" width="2" height="5" rx="1" transform="rotate(15 16.5 16.5)" />

@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
+import { isAborted } from "../api/client.js";
 
-// Generic {data, loading, error} wrapper for one-off GETs (risk score,
-// shift suggestions, health check) that don't need the full CRUD machinery
-// of useApiResource.
 export function useAsync(asyncFn, deps) {
   const [state, setState] = useState({ data: null, loading: true, error: null });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    let active = true;
+
     setState({ data: null, loading: true, error: null });
-    asyncFn()
+
+    Promise.resolve(asyncFn(controller.signal))
       .then((data) => {
-        if (!cancelled) setState({ data, loading: false, error: null });
+        if (active) setState({ data, loading: false, error: null });
       })
       .catch((error) => {
-        if (!cancelled) setState({ data: null, loading: false, error });
+        // A cancelled request is not a failure and must never render as one.
+        if (!active || isAborted(error)) return;
+        setState({ data: null, loading: false, error });
       });
+
     return () => {
-      cancelled = true;
+      active = false;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

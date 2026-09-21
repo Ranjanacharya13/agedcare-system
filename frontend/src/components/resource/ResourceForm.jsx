@@ -12,10 +12,16 @@ function defaultForField(field) {
   return null;
 }
 
+function isVisible(field, mode) {
+  if (field.readOnly) return false;
+  if (mode === "create") return !field.editOnly;
+  return !field.createOnly;
+}
+
 function buildInitialValues(fields, record, mode) {
   const values = {};
   for (const field of fields) {
-    if (mode === "create" && field.editOnly) continue;
+    if (!isVisible(field, mode)) continue;
     values[field.name] = record ? record[field.name] : defaultForField(field);
   }
   return values;
@@ -27,7 +33,7 @@ export default function ResourceForm({ resource, record, parentId, onSubmit, onC
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const visibleFields = resource.fields.filter((f) => mode === "edit" || !f.editOnly);
+  const visibleFields = resource.fields.filter((f) => isVisible(f, mode));
 
   const handleChange = (name, value) => {
     setValues((prev) => ({ ...prev, [name]: value }));

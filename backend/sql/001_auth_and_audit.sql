@@ -1,0 +1,8 @@
+-- Superseded by 000_schema.sql.
+--
+-- This file originally created just the `users` and `audit_log` tables. The
+-- complete schema — all 25 tables, generated from the Pydantic models, plus
+-- the same auth/audit hardening — now lives in 000_schema.sql instead.
+--
+-- Run that one. It is idempotent and safe against a database that already
+-- has some of these tables.

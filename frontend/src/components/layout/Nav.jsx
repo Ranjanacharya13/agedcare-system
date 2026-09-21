@@ -7,6 +7,7 @@ import {
   IconComplaints,
   IconCalendar,
   IconPulse,
+  IconAlert,
   IconLogout,
 } from "./Icons.jsx";
 import { useAsync } from "../../hooks/useAsync.js";
@@ -15,17 +16,22 @@ import { useAuth } from "../../context/AuthContext.jsx";
 
 const links = [
   { to: "/admin", label: "Dashboard", end: true, Icon: IconDashboard },
-  { to: "/admin/residents", label: "Residents", Icon: IconResidents },
-  { to: "/admin/employees", label: "Employees", Icon: IconEmployees },
-  { to: "/admin/appointments", label: "Appointments", Icon: IconCalendar },
-  { to: "/admin/complaints", label: "Complaints", Icon: IconComplaints },
+  { to: "/admin/residents", label: "Residents", Icon: IconResidents, group: "residents" },
+  { to: "/admin/employees", label: "Staff (HR)", Icon: IconEmployees, group: "employees" },
+  { to: "/admin/coverage", label: "Coverage", Icon: IconResidents, group: "assignments" },
+  { to: "/admin/appointments", label: "Appointments", Icon: IconCalendar, group: "appointments" },
+  { to: "/admin/complaints", label: "Complaints", Icon: IconComplaints, group: "complaints" },
+  { to: "/admin/audit-log", label: "Audit Log", Icon: IconAlert, group: "audit" },
+  { to: "/admin/users", label: "Login Accounts", Icon: IconLogout, group: "users" },
 ];
 
 export default function Nav() {
   const { data, error } = useAsync(() => getHealth(), []);
   const connected = Boolean(data?.status === "ok") && !error;
-  const { user, logout } = useAuth();
+  const { displayName, role, logout, can } = useAuth();
   const navigate = useNavigate();
+
+  const visibleLinks = links.filter((link) => !link.group || can(link.group, "read"));
 
   const handleLogout = () => {
     logout();
@@ -38,7 +44,7 @@ export default function Nav() {
         <Logo tone="dark" />
       </div>
       <nav className="app-nav-links">
-        {links.map(({ to, label, end, Icon }) => (
+        {visibleLinks.map(({ to, label, end, Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -51,8 +57,11 @@ export default function Nav() {
         ))}
       </nav>
       <div className="sidebar-user">
-        <span className="sidebar-user-avatar">{(user?.name || "?")[0]}</span>
-        <span className="sidebar-user-name">{user?.name || "Staff"}</span>
+        <span className="sidebar-user-avatar">{(displayName || "?")[0].toUpperCase()}</span>
+        <span className="sidebar-user-name">
+          {displayName}
+          {role && <small className="sidebar-user-role">{role}</small>}
+        </span>
         <button
           type="button"
           className="sidebar-logout-btn"

@@ -21,16 +21,19 @@ export default function ShiftSuggestionsModal({ shiftId, onClose }) {
           <table className="data-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>Employee</th>
                 <th>Role</th>
                 <th>Week Hours</th>
                 <th>Care Load</th>
+                <th>Score</th>
                 <th>Conflict</th>
               </tr>
             </thead>
             <tbody>
               {data.map((s) => (
                 <tr key={s.employee_id}>
+                  <td>{s.rank}</td>
                   <td>
                     {s.first_name} {s.last_name}
                   </td>
@@ -46,6 +49,7 @@ export default function ShiftSuggestionsModal({ shiftId, onClose }) {
                       </span>
                     )}
                   </td>
+                  <td>{Math.round(s.saw_score * 100)}%</td>
                   <td>
                     <StatusBadge
                       value={s.conflict ? "Conflict" : "Available"}

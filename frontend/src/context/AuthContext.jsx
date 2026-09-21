@@ -1,50 +1,74 @@
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  UNAUTHORIZED_EVENT,
+  authEvents,
+  getToken,
+  setToken,
+} from "../api/client.js";
+import { fetchCurrentUser, login as loginRequest } from "../api/auth.js";
+import { can } from "../config/permissions.js";
 
 const AuthContext = createContext(null);
-const STORAGE_KEY = "careos_auth";
-
-// Dummy client-side gate only -- CLAUDE.md notes there is no real auth
-// anywhere in this stack yet (backend/config/security.py is unwired
-// scaffolding). This just keeps /admin from being a bare URL with nothing
-// in front of it; it is not a security boundary.
-const DUMMY_USERNAME = "admin";
-const DUMMY_PASSWORD = "careos123";
-
-function readStoredUser() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
-}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(readStoredUser);
+  const [user, setUser] = useState(null);
+  const [status, setStatus] = useState(getToken() ? "checking" : "anonymous");
 
-  const login = useCallback((username, password) => {
-    if (
-      username.trim().toLowerCase() === DUMMY_USERNAME &&
-      password === DUMMY_PASSWORD
-    ) {
-      const nextUser = { name: "Admin" };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-      setUser(nextUser);
-      return true;
-    }
-    return false;
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+  const signOut = useCallback(() => {
+    setToken(null);
     setUser(null);
+    setStatus("anonymous");
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated: Boolean(user), login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  useEffect(() => {
+    if (!getToken()) return undefined;
+
+    const controller = new AbortController();
+    fetchCurrentUser({ signal: controller.signal })
+      .then((me) => {
+        setUser(me);
+        setStatus("authenticated");
+      })
+      .catch(() => {
+        setToken(null);
+        setUser(null);
+        setStatus("anonymous");
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => signOut();
+    authEvents.addEventListener(UNAUTHORIZED_EVENT, handler);
+    return () => authEvents.removeEventListener(UNAUTHORIZED_EVENT, handler);
+  }, [signOut]);
+
+  const login = useCallback(async (email, password) => {
+    const response = await loginRequest(email, password);
+    setToken(response.access_token);
+    setUser(response.user);
+    setStatus("authenticated");
+    return response.user;
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      status,
+      isAuthenticated: status === "authenticated",
+      isChecking: status === "checking",
+      role: user?.access_role ?? null,
+      displayName: user?.full_name || user?.email || "Staff",
+      login,
+      logout: signOut,
+      /** Ask before rendering: `can("employee_hr", "read")`. */
+      can: (group, action = "read") => can(user?.access_role, group, action),
+    }),
+    [user, status, login, signOut]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

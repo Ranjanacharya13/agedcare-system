@@ -3,10 +3,6 @@ import { get } from "../api/client.js";
 
 const DirectoryContext = createContext(null);
 
-// No search endpoint exists on the backend and facility rosters are small,
-// so loading the full residents+employees lists once (up to 1000 rows each)
-// is the affordable strategy for name lookups and reference dropdowns
-// everywhere in the app.
 export function DirectoryProvider({ children }) {
   const [residents, setResidents] = useState([]);
   const [employees, setEmployees] = useState([]);

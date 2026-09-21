@@ -5,11 +5,6 @@ const employeeRef = {
   reference: { resource: "employees", scope: "global", labelFields: ["first_name", "last_name"] },
 };
 
-// Shared with the public intake form (frontend/src/pages/PublicLandingPage.jsx),
-// which renders a hand-picked subset of these fields directly rather than
-// going through ResourcePanel -- a visitor needs a one-shot form, not a data
-// table. Keep this as the single source of truth for field labels/options so
-// the two surfaces don't drift.
 export const appointmentsConfig = {
   slug: "appointments",
   label: "Appointment",

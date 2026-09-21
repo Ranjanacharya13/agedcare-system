@@ -5,13 +5,6 @@ from supabase import AsyncClient
 
 from backend.services.risk_scoring import RiskScoringService
 
-# There is no real employee<->resident assignment table in this schema, so
-# this approximates "which residents has this employee recently cared for"
-# by reusing the assessed_by/reported_by/recorded_by/updated_by columns that
-# already exist on the resident signal tables -- a schema-free proxy rather
-# than a new join table. Expect this to read as (0, 0) for most employees
-# today, since those columns are optional and rarely filled in existing test
-# data -- it becomes meaningful once real staff usage populates them.
 CARE_LOAD_LOOKBACK_DAYS = 30
 
 _SIGNAL_TABLES = (
@@ -28,6 +21,10 @@ async def get_employee_care_load(
     risk_scoring_service: RiskScoringService,
     lookback_days: int = CARE_LOAD_LOOKBACK_DAYS,
 ) -> tuple[float, int]:
+    """Returns (care load, residents cared for). Care load = sum of the risk scores of the
+    residents this employee recently recorded something for, so riskier residents weigh more
+    than a plain head count. Callers normalise it (a SAW cost criterion) when comparing staff.
+    """
     cutoff = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
 
     async def _fetch(table_name: str, employee_column: str, date_column: str):
@@ -39,9 +36,6 @@ async def get_employee_care_load(
             .execute()
         )
 
-    # The four signal-table lookups are independent, and so is scoring each
-    # distinct resident found -- run both stages concurrently rather than
-    # one at a time.
     responses = await asyncio.gather(*(_fetch(*table) for table in _SIGNAL_TABLES))
     resident_ids: set[str] = set()
     for response in responses:

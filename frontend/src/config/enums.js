@@ -1,7 +1,3 @@
-// Every literal value here must byte-match the backend's StrEnum members
-// (backend/models/*.py) -- a mismatch is a silent 422 from Pydantic enum
-// validation, not a frontend bug that shows up locally.
-
 export const COGNITIVE_STATUS = [
   "Cognitive",
   "Non-Cognitive",
@@ -38,3 +34,19 @@ export const PAYROLL_STATUS = ["Draft", "Finalized", "Paid"];
 export const COMPLAINT_STATUS = ["Open", "Investigating", "Resolved", "Closed"];
 
 export const APPOINTMENT_STATUS = ["Pending", "Confirmed", "Cancelled", "Completed"];
+
+export const ACCESS_ROLE = ["Admin", "Manager", "Nurse", "Care Worker", "Family"];
+
+// Audit actions (backend/models/audit_log.py AuditAction).
+export const AUDIT_ACTION = [
+  "create",
+  "update",
+  "delete",
+  "login",
+  "login_failed",
+  "password_change",
+  "access_denied",
+];
+
+// Care team roles (backend/models/resident_assignment.py AssignmentType).
+export const ASSIGNMENT_TYPE = ["Primary", "Secondary", "Relief"];

@@ -4,9 +4,12 @@ from pydantic import BaseModel
 from supabase import AsyncClient
 
 from backend.db.supabase_client import get_supabase
+from backend.models.appointment import Appointment
 from backend.models.assistance import ResidentAssistance
 from backend.models.behaviour import ResidentBehaviour
 from backend.models.bowel_chart import ResidentBowelChart
+from backend.models.complaint import ComplaintFeedback
+from backend.models.employee import Employee
 from backend.models.employee_availability import EmployeeAvailability
 from backend.models.employee_contract import EmployeeContract
 from backend.models.employee_leave import EmployeeLeave
@@ -19,22 +22,22 @@ from backend.models.employee_supervision import EmployeeSupervision
 from backend.models.employee_time_entry import EmployeeTimeEntry
 from backend.models.fall_risk import ResidentFallRisk
 from backend.models.incident import ResidentIncident
+from backend.models.medical_history import ResidentMedicalHistory
 from backend.models.medical_inventory import ResidentMedicalInventory
 from backend.models.medication import ResidentMedication
+from backend.models.resident import Resident
 from backend.models.sleep_chart import ResidentSleepChart
 from backend.repositories.appointment_repository import AppointmentRepository
+from backend.repositories.audit_repository import AuditRepository
 from backend.repositories.base import SupabaseRepository
 from backend.repositories.complaint_repository import ComplaintRepository
 from backend.repositories.employee_repository import EmployeeRepository
-from backend.repositories.medical_history_repository import MedicalHistoryRepository
 from backend.repositories.resident_repository import ResidentRepository
-from backend.services.appointment_service import AppointmentService
-from backend.services.base import ParentScopedService
-from backend.services.complaint_service import ComplaintService
-from backend.services.employee_service import EmployeeService
-from backend.services.medical_history_service import MedicalHistoryService
-from backend.services.resident_service import ResidentService
+from backend.services.base import CrudService, ParentScopedService
+from backend.services.assignment_service import AssignmentService
+from backend.services.carer_matching import CarerMatchingService
 from backend.services.risk_scoring import RiskScoringService
+from backend.services.roster_optimisation import RosterOptimisationService
 from backend.services.shift_matching import ShiftMatchingService
 
 
@@ -42,34 +45,43 @@ def get_db() -> AsyncClient:
     return get_supabase()
 
 
-def get_resident_service() -> ResidentService:
-    repository = ResidentRepository(get_db())
-    return ResidentService(repository)
+def get_audit_repository() -> AuditRepository:
+    return AuditRepository(get_db())
 
 
-def get_employee_service() -> EmployeeService:
-    repository = EmployeeRepository(get_db())
-    return EmployeeService(repository)
+def get_resident_service() -> CrudService:
+    return CrudService(ResidentRepository(get_db()), Resident, "Resident")
 
 
-def get_medical_history_service() -> MedicalHistoryService:
-    repository = MedicalHistoryRepository(get_db())
-    resident_repository = ResidentRepository(get_db())
-    return MedicalHistoryService(repository, resident_repository)
+def get_employee_service() -> CrudService:
+    return CrudService(EmployeeRepository(get_db()), Employee, "Employee")
 
 
-def get_complaint_service() -> ComplaintService:
-    repository = ComplaintRepository(get_db())
-    return ComplaintService(repository)
+def get_complaint_service() -> CrudService:
+    return CrudService(ComplaintRepository(get_db()), ComplaintFeedback, "Complaint")
 
 
-def get_appointment_service() -> AppointmentService:
-    repository = AppointmentRepository(get_db())
-    return AppointmentService(repository)
+def get_appointment_service() -> CrudService:
+    return CrudService(AppointmentRepository(get_db()), Appointment, "Appointment")
 
 
 def get_risk_scoring_service() -> RiskScoringService:
     return RiskScoringService(get_db())
+
+
+def get_assignment_service() -> AssignmentService:
+    client = get_db()
+    return AssignmentService(client, RiskScoringService(client))
+
+
+def get_carer_matching_service() -> CarerMatchingService:
+    client = get_db()
+    return CarerMatchingService(client, RiskScoringService(client))
+
+
+def get_roster_optimisation_service() -> RosterOptimisationService:
+    client = get_db()
+    return RosterOptimisationService(client, RiskScoringService(client))
 
 
 def get_shift_matching_service() -> ShiftMatchingService:
@@ -105,10 +117,14 @@ def _make_scoped_service_getter(
     return _get_service
 
 
-# --- resident-scoped charts ---
-
 get_behaviour_service = _make_scoped_service_getter(
     "resident_behaviour", ResidentBehaviour, "recorded_at", "Behaviour record not found"
+)
+get_medical_history_service = _make_scoped_service_getter(
+    "resident_medical_history",
+    ResidentMedicalHistory,
+    "recorded_at",
+    "Medical history record not found",
 )
 get_medication_service = _make_scoped_service_getter(
     "resident_medications", ResidentMedication, None, "Medication not found"
@@ -135,7 +151,6 @@ get_incident_service = _make_scoped_service_getter(
     "resident_incidents", ResidentIncident, "occurred_at", "Incident record not found"
 )
 
-# --- employee-scoped records ---
 
 get_supervision_service = _make_scoped_service_getter(
     "employee_supervision",

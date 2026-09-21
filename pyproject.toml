@@ -7,9 +7,10 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.139.2",
     "pydantic-settings>=2.6.0",
-    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.1.0",
     "pyjwt>=2.9.0",
     "supabase>=2.31.0",
+    "email-validator>=2.2.0",
 ]
 
 [dependency-groups]

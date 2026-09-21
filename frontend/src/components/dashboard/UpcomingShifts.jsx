@@ -9,9 +9,6 @@ import StatusBadge from "../common/StatusBadge.jsx";
 import { formatRelativeDay } from "../../utils/format.js";
 import { IconClock } from "../layout/Icons.jsx";
 
-// Reads the flat GET-only /shifts list (backend/api/v1/parent_scoped_router.py
-// only registers GET on the flat path) -- purely for display, never for
-// mutation.
 export default function UpcomingShifts() {
   const { data, loading, error } = useAsync(() => get("/shifts?skip=0&limit=100"), []);
   const { employeesById } = useDirectory();

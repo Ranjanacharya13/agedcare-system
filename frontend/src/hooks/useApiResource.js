@@ -1,22 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createResourceApi } from "../api/resourceApi.js";
+import { isAborted } from "../api/client.js";
 
-// Drives ResourcePanel: list/create/update/delete state for one resource
-// config, optionally scoped to a parentId (resident/employee).
 export function useApiResource(config, parentId) {
   const api = useMemo(() => createResourceApi(config), [config]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const inFlight = useRef(null);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      inFlight.current?.abort();
+    };
+  }, []);
+
   const reload = useCallback(() => {
+    inFlight.current?.abort();
+    const controller = new AbortController();
+    inFlight.current = controller;
+
     setLoading(true);
     setError(null);
     api
-      .list({ parentId })
-      .then(setItems)
-      .catch(setError)
-      .finally(() => setLoading(false));
+      .list({ parentId, signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted && mounted.current) {
+          setItems(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isAborted(err) || controller.signal.aborted || !mounted.current) return;
+        setError(err);
+        setLoading(false);
+      });
   }, [api, parentId]);
 
   useEffect(() => {
