@@ -1,12 +1,16 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, status
 
-from backend.api.deps import get_assignment_service
+from backend.api.deps import get_assignment_service, get_care_visit_service
+from backend.schemas.care_visit import BookNextHourIn, CareVisitOut
 from backend.schemas.resident_assignment import (
     AssignmentCreate,
     AssignmentOut,
     AssignmentUpdate,
     BulkAssignmentIn,
     BulkAssignmentOut,
+    BulkEndOut,
     CareTeamOut,
     CaseloadOut,
     CoverageReportOut,
@@ -14,6 +18,7 @@ from backend.schemas.resident_assignment import (
     WorkloadReportOut,
 )
 from backend.services.assignment_service import AssignmentService
+from backend.services.care_visit_service import CareVisitService
 
 #: Resident-scoped CRUD: /residents/{id}/assignments
 router = APIRouter()
@@ -107,3 +112,39 @@ async def create_assignments_in_bulk(
 ):
     """Confirm a set of assignments in one action."""
     return await service.create_many(payload.assignments)
+
+
+@views_router.post("/coverage/assignments/end-all", response_model=BulkEndOut)
+async def end_all_assignments(
+    service: AssignmentService = Depends(get_assignment_service),
+):
+    """End every currently active assignment, facility-wide. Kept as history, not deleted."""
+    return await service.end_all()
+
+
+@views_router.get("/care-schedule", response_model=list[CareVisitOut])
+async def get_care_schedule(
+    start: datetime,
+    end: datetime,
+    service: CareVisitService = Depends(get_care_visit_service),
+):
+    """Every care visit overlapping [start, end), earliest first. The browser sends its local day."""
+    return await service.list_between(start, end)
+
+
+@views_router.post(
+    "/residents/{resident_id}/care-visits/next-free-hour", response_model=CareVisitOut | None
+)
+async def book_next_free_hour(
+    resident_id: str,
+    payload: BookNextHourIn,
+    service: CareVisitService = Depends(get_care_visit_service),
+):
+    """Book the carer's next free hour on shift today; null if they have none left."""
+    return await service.book_next_free_hour(
+        resident_id,
+        str(payload.employee_id),
+        payload.day_start,
+        payload.day_end,
+        payload.task,
+    )

@@ -1,22 +1,27 @@
 """Suggesting who should care for whom: SAW score, then lexicographic ranking.
 
 For one resident:
-  1. reject inactive employees and anyone already on the resident's care team (hard rules)
+  1. reject inactive employees, non-caring roles (managers, admin, kitchen, laundry) and
+     anyone already on the resident's care team (hard rules)
   2. normalise the soft criteria across the remaining candidates
   3. SAW score = weighted sum of the normalised criteria (higher is better)
-  4. rank lexicographically: suitable role first, then SAW score, then smaller caseload
+  4. rank lexicographically: on shift today first, then SAW score, then smaller caseload
 """
 
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 
 from supabase import AsyncClient
 
 from backend.algorithms.lexicographic import rank
 from backend.algorithms.saw import calculate_saw_score, normalize_all, saw_breakdown
-from backend.models.employee import Employee, EmployeeRole
+from backend.models.employee import CARING_ROLES, Employee, EmployeeRole
+from backend.models.employee_availability import EmployeeAvailability
+from backend.models.employee_shift import EmployeeShift
 from backend.models.resident_assignment import AssignmentType
+from backend.repositories.base import SupabaseRepository
 from backend.repositories.employee_repository import EmployeeRepository
 from backend.repositories.resident_assignment_repository import (
     ResidentAssignmentRepository,
@@ -27,6 +32,8 @@ from backend.schemas.carer_suggestion import (
     CarerSuggestionOut,
     SuggestAssignmentsOut,
 )
+from backend.services.availability import group_by_employee, is_available
+from backend.services.care_visit_service import NOT_WORKING, day_window
 from backend.services.risk_scoring import RiskScoringService
 
 # SAW weights. All three are 0..1 with 1 = best, and they sum to 1.0.
@@ -38,28 +45,19 @@ CARER_WEIGHTS = {
 }
 
 # Lexicographic priority, most important first: (field, higher_is_better).
-# Active and not-already-on-the-team are hard rules applied before ranking.
+# Active, caring role and not-already-on-the-team are hard rules applied before ranking.
 CARER_PRIORITY = (
-    ("role_suitable", True),  # 1. a caring role first
+    ("on_shift_today", True),  # 1. someone actually working today
     ("saw_score", True),  # 2. best SAW score
     ("caseload", False),  # 3. tie-break: smaller caseload
 )
 
-NON_CARING_ROLES = frozenset(
-    {EmployeeRole.KITCHEN_STAFF, EmployeeRole.LAUNDRY_STAFF, EmployeeRole.ADMINISTRATOR}
-)
-
-# Clinical skill of each role, 0..1 (higher = can safely care for sicker residents).
+# Clinical skill of each caring role, 0..1 (higher = can safely care for sicker residents).
 ROLE_SKILL = {
     EmployeeRole.REGISTERED_NURSE: 1.0,
     EmployeeRole.CARE_PLANNER: 0.7,
     EmployeeRole.CARE_COORDINATOR: 0.6,
-    EmployeeRole.MANAGER: 0.4,
-    EmployeeRole.ADMINISTRATOR: 0.0,
-    EmployeeRole.KITCHEN_STAFF: 0.0,
-    EmployeeRole.LAUNDRY_STAFF: 0.0,
 }
-UNKNOWN_ROLE_SKILL = 0.3
 
 ALTERNATIVES_PER_RESIDENT = 6
 MAX_RISK_SCORE = 100.0
@@ -70,14 +68,30 @@ class CarerMatchingService:
         self._assignment_repository = ResidentAssignmentRepository(client)
         self._resident_repository = ResidentRepository(client)
         self._employee_repository = EmployeeRepository(client)
+        self._shift_repository = SupabaseRepository(
+            client, "employee_shifts", EmployeeShift, parent_field="employee_id"
+        )
+        self._availability_repository = SupabaseRepository(
+            client, "employee_availability", EmployeeAvailability, parent_field="employee_id"
+        )
         self._risk_scoring_service = risk_scoring_service
 
-    async def _staff_state(self) -> tuple[list[Employee], dict[str, dict]]:
-        """Every active employee, with what they are already carrying."""
-        employees, assignments = await asyncio.gather(
+    async def _staff_state(
+        self, day_start: datetime | None = None, day_end: datetime | None = None
+    ) -> tuple[list[Employee], dict[str, dict]]:
+        """Every active employee, with what they are carrying and their shift that day."""
+        day_start, day_end = day_window(day_start, day_end)
+        employees, assignments, shifts, availability = await asyncio.gather(
             self._employee_repository.list_all(0, 1000),
             self._assignment_repository.list_all(0, 5000, active_only=True),
+            self._shift_repository.list_overlapping("shift_start", "shift_end", day_start, day_end),
+            self._availability_repository.list_all(0, 5000),
         )
+        availability_by_employee = group_by_employee(availability)
+        shift_today: dict[str, EmployeeShift] = {}
+        for shift in shifts:  # earliest first, so each person keeps their first shift of the day
+            if shift.status not in NOT_WORKING and shift.employee_id:
+                shift_today.setdefault(str(shift.employee_id), shift)
         active = [e for e in employees if e.active]
 
         held: dict[str, list[str]] = {}
@@ -104,17 +118,28 @@ class CarerMatchingService:
                 "resident_ids": resident_ids,
                 "risk_load": sum(score_by_resident.get(rid, 0) for rid in resident_ids),
                 "caseload": len(resident_ids),
+                "shift": shift_today.get(str(employee.id)),
+                "available_today": is_available(
+                    availability_by_employee.get(str(employee.id), []), day_start
+                ),
             }
         return active, state
 
     @staticmethod
     def _skill(employee: Employee) -> float:
-        return ROLE_SKILL.get(employee.role, UNKNOWN_ROLE_SKILL)
+        return ROLE_SKILL[employee.role]
 
     def _rank(self, staff_list: list[dict], resident_id: str, acuity: float) -> list[dict]:
         """Rank the carers who could take this resident, best first."""
-        # Hard rule: someone already on the care team cannot be assigned again.
-        candidates = [s for s in staff_list if resident_id not in s["resident_ids"]]
+        # Hard rules: only caring roles, nobody already on the care team, and
+        # nobody who said they are not available today.
+        candidates = [
+            s
+            for s in staff_list
+            if s["employee"].role in CARING_ROLES
+            and resident_id not in s["resident_ids"]
+            and s["available_today"]
+        ]
         if not candidates:
             return []
 
@@ -131,7 +156,8 @@ class CarerMatchingService:
             rows.append(
                 {
                     "staff": staff,
-                    "role_suitable": employee.role not in NON_CARING_ROLES,
+                    "role_suitable": True,  # non-caring roles were filtered out above
+                    "on_shift_today": staff["shift"] is not None,
                     # SAW score: higher value means a better candidate.
                     "saw_score": calculate_saw_score(normalised, CARER_WEIGHTS),
                     "caseload": staff["caseload"],
@@ -158,15 +184,12 @@ class CarerMatchingService:
         """Plain-language justification, built from the criteria."""
         staff = row["staff"]
         bits = [
+            "on shift today" if staff["shift"] else "not rostered today",
             "holds no residents yet"
             if staff["caseload"] == 0
             else f"currently {staff['caseload']} resident(s), risk load {staff['risk_load']}"
         ]
-        bits.append(
-            f"{staff['employee'].role or 'role unknown'}"
-            if row["role_suitable"]
-            else "not a clinical role"
-        )
+        bits.append(str(staff["employee"].role))
         best = max(row["breakdown"], key=lambda item: item["contribution"])
         bits.append(f"strongest criterion: {best['criterion']} ({best['normalised']:.2f})")
         return "; ".join(bits)
@@ -182,6 +205,9 @@ class CarerMatchingService:
             current_caseload=row["staff"]["caseload"],
             current_risk_load=row["staff"]["risk_load"],
             role_suitable=row["role_suitable"],
+            on_shift_today=row["on_shift_today"],
+            shift_start=row["staff"]["shift"].shift_start if row["staff"]["shift"] else None,
+            shift_end=row["staff"]["shift"].shift_end if row["staff"]["shift"] else None,
             saw_score=round(row["saw_score"], 4),
             rank=row["rank"],
             breakdown=row["breakdown"],
@@ -189,11 +215,15 @@ class CarerMatchingService:
         )
 
     async def rank_candidates_for_resident(
-        self, resident_id: str, limit: int = 5
+        self,
+        resident_id: str,
+        limit: int = 5,
+        day_start: datetime | None = None,
+        day_end: datetime | None = None,
     ) -> list[CarerCandidateOut]:
-        """Who could take this resident, best first."""
+        """Who could take this resident today, best first."""
         (_, state), score = await asyncio.gather(
-            self._staff_state(),
+            self._staff_state(day_start, day_end),
             self._risk_scoring_service.get_resident_score(resident_id),
         )
         acuity = (score.score / MAX_RISK_SCORE) if score else 0.0

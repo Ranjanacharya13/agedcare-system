@@ -4,7 +4,7 @@ import Modal from "../common/Modal.jsx";
 import Button from "../common/Button.jsx";
 import Skeleton from "../common/Skeleton.jsx";
 import ErrorBanner from "../common/ErrorBanner.jsx";
-import { ASSIGNMENT_TYPE } from "../../config/enums.js";
+import { ASSIGNMENT_TYPE, CARING_ROLES } from "../../config/enums.js";
 import { initials } from "../../utils/format.js";
 
 const LEVEL_LABEL = { light: "Light load", steady: "Steady", packed: "Packed" };
@@ -30,6 +30,7 @@ export default function CarerPicker({
     const q = query.trim().toLowerCase();
     const onShift = (s) => (byId[s.employee_id]?.shiftsToday.length ? 0 : 1);
     return (data?.staff || [])
+      .filter((s) => CARING_ROLES.includes(s.role))
       .filter((s) => !q || `${s.first_name} ${s.last_name} ${s.role || ""}`.toLowerCase().includes(q))
       .filter((s) => !onShiftOnly || onShift(s) === 0)
       .sort((a, b) => onShift(a) - onShift(b)); // stable: keeps lightest-load order within each group

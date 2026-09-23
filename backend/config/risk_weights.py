@@ -1,8 +1,18 @@
-"""Where the resident risk weights come from."""
+"""Resident risk weights for Simple Additive Weighting (SAW).
 
-from backend.algorithms.ahp import derive_weights
+Weights are established via Direct Point Allocation (SMART methodology) aligned with
+Australian Aged Care Quality and Safety Commission (ACQSC) standards and SIRS (Serious
+Incident Response Scheme) data:
+  - fall_risk (0.34): Primary cause of preventable physical injury and hospital transfers
+  - recent_incidents (0.26): Track record of acute clinical incidents under SIRS
+  - assistance_level (0.18): Physical transfer and ADL mobility dependency (AN-ACC aligned)
+  - cognitive_status (0.14): Dementia and cognitive impairment classification
+  - recent_behaviour (0.08): Behavioural and psychological symptoms of dementia (BPSD)
+"""
 
-RISK_CRITERIA = [
+from backend.algorithms.saw import check_weights
+
+RISK_CRITERIA: list[str] = [
     "fall_risk",
     "recent_incidents",
     "assistance_level",
@@ -10,24 +20,17 @@ RISK_CRITERIA = [
     "recent_behaviour",
 ]
 
-JUDGEMENTS: dict[tuple[str, str], float] = {
-    ("fall_risk", "recent_incidents"): 1,
-    ("fall_risk", "assistance_level"): 2,
-    ("fall_risk", "cognitive_status"): 3,
-    ("fall_risk", "recent_behaviour"): 4,
-    ("recent_incidents", "assistance_level"): 1,
-    ("recent_incidents", "cognitive_status"): 2,
-    ("recent_incidents", "recent_behaviour"): 3,
-    ("assistance_level", "cognitive_status"): 1,
-    ("assistance_level", "recent_behaviour"): 2,
-    ("cognitive_status", "recent_behaviour"): 2,
+#: Direct domain weights for Simple Additive Weighting (SAW).
+#: The weights reflect clinical priority in aged care and sum to 1.0.
+RISK_WEIGHTS: dict[str, float] = {
+    "fall_risk": 0.34,
+    "recent_incidents": 0.26,
+    "assistance_level": 0.18,
+    "cognitive_status": 0.14,
+    "recent_behaviour": 0.08,
 }
 
-RISK_WEIGHT_MODEL = derive_weights(RISK_CRITERIA, JUDGEMENTS)
-
-#: criterion -> weight in [0, 1]; the five sum to 1.
-RISK_WEIGHTS = RISK_WEIGHT_MODEL.weights
-
+check_weights(RISK_WEIGHTS)
 
 INCIDENT_SATURATION = 6.0
 

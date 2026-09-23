@@ -15,6 +15,13 @@ class EmployeeRole(StrEnum):
     MANAGER = "Manager"
 
 
+#: Roles that deliver hands-on care. Only these may join a care team or be scheduled
+#: with a resident; managers, administrators, kitchen and laundry staff never are.
+CARING_ROLES = frozenset(
+    {EmployeeRole.REGISTERED_NURSE, EmployeeRole.CARE_PLANNER, EmployeeRole.CARE_COORDINATOR}
+)
+
+
 class EmploymentStatus(StrEnum):
     FULL_TIME = "Full-Time"
     PART_TIME = "Part-Time"

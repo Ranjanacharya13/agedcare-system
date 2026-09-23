@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDate } from "../../utils/format.js";
 import { ageFromDob } from "../../utils/residentTone.js";
+import ResidentRiskCard from "./ResidentRiskCard.jsx";
 
 /** Key facts at a glance, plus the two things staff most often want next. */
 export default function ResidentOverview({ resident, baseUrl }) {
@@ -38,6 +39,8 @@ export default function ResidentOverview({ resident, baseUrl }) {
           </p>
         </div>
       )}
+
+      <ResidentRiskCard residentId={resident.id} />
 
       <div className="overview-links">
         <Link className="btn btn-secondary btn-sm" to={`${baseUrl}/care-team`}>

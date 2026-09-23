@@ -15,6 +15,9 @@ export const EMPLOYEE_ROLE = [
   "Manager",
 ];
 
+/** Mirrors backend CARING_ROLES: the only job titles that may be put with a resident. */
+export const CARING_ROLES = ["Registered Nurse", "Care Planner", "Care Coordinator"];
+
 export const EMPLOYMENT_STATUS = ["Full-Time", "Part-Time", "Casual", "Agency"];
 
 export const RISK_LEVEL = ["Low", "Medium", "High"];

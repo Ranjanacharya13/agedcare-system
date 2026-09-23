@@ -23,6 +23,12 @@ export function formatNumber(value) {
   return String(value);
 }
 
+/** Today's (or any date's) YYYY-MM-DD in the browser's own timezone — never UTC via toISOString. */
+export function localDateString(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function initials(firstName, lastName) {
   return `${(firstName || "?")[0]}${(lastName || "")[0] || ""}`.toUpperCase();
 }

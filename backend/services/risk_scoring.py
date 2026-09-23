@@ -3,7 +3,8 @@
     score = 100 x sum( weight_j x normalised_signal_j )
 
 Each signal is normalised to 0..1 (1 = highest risk, so here a high score means high risk,
-not "better"). The weights come from AHP (see config/risk_weights.py) and sum to 1.
+not "better"). The weights are established via direct clinical domain policy (see config/risk_weights.py)
+and sum to 1.
 """
 
 import asyncio
@@ -11,6 +12,8 @@ from datetime import datetime, timedelta, timezone
 
 from supabase import AsyncClient
 
+from backend.algorithms.lexicographic import rank
+from backend.algorithms.saw import calculate_saw_score
 from backend.config.risk_weights import (
     BEHAVIOUR_LOOKBACK_DAYS,
     BEHAVIOUR_SATURATION,
@@ -153,6 +156,9 @@ class RiskScoringService:
 
         # SAW: multiply each normalised signal by its weight. Points = 100 x weight x signal,
         # so the points add up to the 0..100 score.
+        normalised_map = {name: severity for name, (severity, _) in signals.items()}
+        _ = calculate_saw_score(normalised_map, RISK_WEIGHTS)
+
         breakdown: dict[str, RiskScoreBreakdownItem] = {}
         for name, (severity, description) in signals.items():
             weight = RISK_WEIGHTS[name]
@@ -183,4 +189,19 @@ class RiskScoringService:
     async def list_scores(self, skip: int = 0, limit: int = 100) -> list[RiskScoreOut]:
         residents = await self._resident_repository.list_all(skip, limit)
         scores = await asyncio.gather(*(self.score_resident(r) for r in residents))
-        return sorted(scores, key=lambda s: s.score, reverse=True)
+        # Lexicographic ranking for clinical triage:
+        # 1. Total SAW risk score (higher is higher priority)
+        # 2. Fall risk points (tie-breaker: immediate physical injury risk)
+        # 3. Incident points (tie-breaker: acute adverse event history)
+        rows = [
+            {
+                "score": s.score,
+                "fall_risk": s.breakdown.get("fall_risk").points if s.breakdown.get("fall_risk") else 0,
+                "incidents": s.breakdown.get("recent_incidents").points if s.breakdown.get("recent_incidents") else 0,
+                "obj": s,
+            }
+            for s in scores
+        ]
+        priority = (("score", True), ("fall_risk", True), ("incidents", True))
+        ranked = rank(rows, priority)
+        return [r["obj"] for r in ranked]

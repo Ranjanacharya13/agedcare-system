@@ -51,6 +51,20 @@ class SupabaseRepository(AuditedRepository, Generic[ModelT]):
         response = await query.range(skip, skip + limit - 1).execute()
         return [self._model(**row) for row in response.data]
 
+    async def list_overlapping(
+        self, start_field: str, end_field: str, start, end, **equals
+    ) -> list[ModelT]:
+        """Rows whose [start_field, end_field) intersects [start, end), earliest first."""
+        query = (
+            self._table.select("*")
+            .lt(start_field, end.isoformat())
+            .gt(end_field, start.isoformat())
+        )
+        for field, value in equals.items():
+            query = query.eq(field, value)
+        response = await query.order(start_field).execute()
+        return [self._model(**row) for row in response.data]
+
     async def update(self, record_id: str, updates: dict) -> ModelT | None:
         before = await self.get_by_id(record_id)
         response = await self._table.update(updates).eq("id", record_id).execute()

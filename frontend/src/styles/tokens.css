@@ -1,13 +1,7 @@
 :root {
-  /* ------------------------------------------------------------------ */
-  /* Brand — warm plum + flame, in the manner of large Australian care    */
-  /* providers (vmch.com.au). A deep, dignified plum carries structure    */
-  /* (headers, sidebar, footer); a single hot flame-orange carries        */
-  /* emphasis (section titles, primary CTAs); a family of peach/sand      */
-  /* accents fills the soft bands between them. Warm greys throughout —   */
-  /* no cool blue-grey anywhere, which is what makes the palette read as  */
-  /* human rather than clinical.                                          */
-  /* ------------------------------------------------------------------ */
+  /* Brand — warm plum + flame, no cool blue-grey anywhere. Plum carries
+     structure (header/sidebar/footer), flame-orange is for emphasis
+     (section titles, primary CTAs), peach/sand fills the soft bands. */
 
   /* Plum ramp */
   --color-plum-400: #5f3546;

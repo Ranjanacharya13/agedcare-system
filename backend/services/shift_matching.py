@@ -6,10 +6,12 @@ from supabase import AsyncClient
 
 from backend.algorithms.lexicographic import rank
 from backend.algorithms.saw import calculate_saw_score, normalize_all, saw_breakdown
+from backend.models.employee_availability import EmployeeAvailability
 from backend.models.employee_shift import EmployeeShift
 from backend.repositories.base import SupabaseRepository
 from backend.repositories.employee_repository import EmployeeRepository
 from backend.schemas.shift_suggestion import ShiftSuggestionOut
+from backend.services.availability import group_by_employee, is_available
 from backend.services.employee_care_load import get_employee_care_load
 from backend.services.risk_scoring import RiskScoringService
 
@@ -64,6 +66,9 @@ class ShiftMatchingService:
             client, "employee_shifts", EmployeeShift, order_column="shift_start",
             parent_field="employee_id",
         )
+        self._availability_repository = SupabaseRepository(
+            client, "employee_availability", EmployeeAvailability, parent_field="employee_id"
+        )
 
     async def suggest_employees(self, shift_id: str) -> list[ShiftSuggestionOut] | None:
         target = await self._shift_repository.get_by_id(shift_id)
@@ -71,10 +76,21 @@ class ShiftMatchingService:
             return None
 
         target_week = target.shift_start.isocalendar()[:2]
-        employees = await self._employee_repository.list_all(0, 1000)
+        employees, availability = await asyncio.gather(
+            self._employee_repository.list_all(0, 1000),
+            self._availability_repository.list_all(0, 5000),
+        )
+        availability_by_employee = group_by_employee(availability)
 
-        # Inactive employees are rejected outright.
-        candidates = [e for e in employees if e.active and e.id != target.employee_id]
+        # Inactive employees, the shift's own holder, and anyone who said they
+        # are not available that day are rejected outright.
+        candidates = [
+            e
+            for e in employees
+            if e.active
+            and e.id != target.employee_id
+            and is_available(availability_by_employee.get(str(e.id), []), target.shift_start)
+        ]
         rows = await asyncio.gather(
             *(self._build_row(e, target, target_week) for e in candidates)
         )

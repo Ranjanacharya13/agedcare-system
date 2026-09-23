@@ -72,6 +72,13 @@ class BulkAssignmentOut(BaseModel):
     failed: list[BulkAssignmentFailure]
 
 
+class BulkEndOut(BaseModel):
+    """Result of ending every active assignment facility-wide."""
+
+    ended_count: int
+    failed_count: int
+
+
 class CareTeamMemberOut(BaseModel):
     assignment_id: UUID
     employee_id: UUID

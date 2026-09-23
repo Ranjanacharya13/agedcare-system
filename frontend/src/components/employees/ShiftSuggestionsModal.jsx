@@ -18,6 +18,10 @@ export default function ShiftSuggestionsModal({ shiftId, onClose }) {
         <EmptyState message="No eligible employees found for this shift." />
       ) : (
         <div className="table-wrap">
+          <p className="text-muted algo-subtle" style={{ marginBottom: "var(--space-3)" }}>
+            Prioritized lexicographically (no shift conflict and matching role first), then scored by
+            Simple Additive Weighting (SAW on care load and weekly hours).
+          </p>
           <table className="data-table">
             <thead>
               <tr>
@@ -26,7 +30,7 @@ export default function ShiftSuggestionsModal({ shiftId, onClose }) {
                 <th>Role</th>
                 <th>Week Hours</th>
                 <th>Care Load</th>
-                <th>Score</th>
+                <th>SAW Score</th>
                 <th>Conflict</th>
               </tr>
             </thead>

@@ -17,7 +17,7 @@ import Button from "../common/Button.jsx";
 import Modal from "../common/Modal.jsx";
 import Skeleton from "../common/Skeleton.jsx";
 import ErrorBanner from "../common/ErrorBanner.jsx";
-import { formatDateTime, initials } from "../../utils/format.js";
+import { formatDateTime, initials, localDateString } from "../../utils/format.js";
 
 export default function CareTeamPanel({ residentId }) {
   const { can } = useAuth();
@@ -61,7 +61,7 @@ export default function CareTeamPanel({ residentId }) {
       await createAssignment(residentId, {
         employee_id: employeeId,
         assignment_type: type,
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: localDateString(),
       });
     }
     setPicker(null);

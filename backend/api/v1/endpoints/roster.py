@@ -1,13 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from backend.algorithms.ahp import CONSISTENCY_THRESHOLD, build_matrix
 from backend.api.deps import get_roster_optimisation_service
-from backend.config.risk_weights import (
-    JUDGEMENTS,
-    RISK_CRITERIA,
-    RISK_WEIGHT_MODEL,
-)
-from backend.schemas.risk_score import AHPCriterionOut, RiskWeightModelOut
+from backend.config.risk_weights import RISK_WEIGHTS
+from backend.schemas.risk_score import CriterionWeightOut, RiskWeightModelOut
 from backend.schemas.roster import RosterOptimiseOut, RosterOptimiseRequest
 from backend.services.roster_optimisation import RosterOptimisationService
 
@@ -34,25 +29,15 @@ async def optimise_roster(
 
 @weights_router.get("/risk-weights", response_model=RiskWeightModelOut)
 async def get_risk_weight_model():
-    model = RISK_WEIGHT_MODEL
     return RiskWeightModelOut(
-        method="Analytic Hierarchy Process (Saaty) — principal eigenvector by power iteration",
+        method="Simple Additive Weighting (SAW) — Australian clinical policy direct weights",
+        weights=RISK_WEIGHTS,
         criteria=[
-            AHPCriterionOut(
+            CriterionWeightOut(
                 criterion=name,
-                weight=round(model.weights[name], 6),
-                percentage=round(model.weights[name] * 100, 2),
+                weight=round(weight, 4),
+                percentage=round(weight * 100, 2),
             )
-            for name in sorted(RISK_CRITERIA, key=lambda c: -model.weights[c])
+            for name, weight in sorted(RISK_WEIGHTS.items(), key=lambda c: -c[1])
         ],
-        comparison_matrix=[
-            [round(value, 4) for value in row]
-            for row in build_matrix(RISK_CRITERIA, JUDGEMENTS)
-        ],
-        lambda_max=round(model.lambda_max, 6),
-        consistency_index=round(model.consistency_index, 6),
-        consistency_ratio=round(model.consistency_ratio, 6),
-        consistency_threshold=CONSISTENCY_THRESHOLD,
-        is_consistent=model.is_consistent,
-        verdict=model.verdict,
     )

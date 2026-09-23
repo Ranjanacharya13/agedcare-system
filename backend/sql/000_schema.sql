@@ -192,6 +192,28 @@ create index if not exists resident_assignments_resident_id_idx on public.reside
 create index if not exists resident_assignments_employee_id_idx on public.resident_assignments (employee_id);
 
 -- ----------------------------------------------------------------------
+-- resident_care_visits
+-- ----------------------------------------------------------------------
+create table if not exists public.resident_care_visits (
+    id                     uuid not null default gen_random_uuid(),
+    resident_id            uuid null,
+    employee_id            uuid not null,
+    start_at               timestamptz not null,
+    end_at                 timestamptz not null,
+    task                   text null,
+    notes                  text null,
+    created_at             timestamptz not null default now(),
+    updated_at             timestamptz not null default now(),
+    constraint resident_care_visits_pkey primary key (id),
+    constraint resident_care_visits_resident_id_fkey
+        foreign key (resident_id) references public.residents (id) on delete cascade,
+    constraint resident_care_visits_employee_id_fkey
+        foreign key (employee_id) references public.employees (id) on delete cascade
+);
+create index if not exists resident_care_visits_resident_id_idx on public.resident_care_visits (resident_id);
+create index if not exists resident_care_visits_employee_id_idx on public.resident_care_visits (employee_id);
+
+-- ----------------------------------------------------------------------
 -- resident_behaviour
 -- ----------------------------------------------------------------------
 create table if not exists public.resident_behaviour (
@@ -580,6 +602,20 @@ create unique index if not exists resident_assignments_one_primary_idx
 create unique index if not exists resident_assignments_unique_active_idx
     on public.resident_assignments (resident_id, employee_id)
     where (active = true);
+
+-- A care visit must end after it starts, and the dashboard reads visits by time.
+do $$ begin
+    alter table public.resident_care_visits
+        add constraint resident_care_visits_time_check check (end_at > start_at);
+exception when duplicate_object then null; end $$;
+create index if not exists resident_care_visits_start_at_idx
+    on public.resident_care_visits (start_at);
+
+-- A shift must end after it starts, same reasoning as care visits above.
+do $$ begin
+    alter table public.employee_shifts
+        add constraint employee_shifts_time_check check (shift_end > shift_start);
+exception when duplicate_object then null; end $$;
 
 -- ===========================================================================
 -- Auth and audit hardening

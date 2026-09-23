@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from supabase import AsyncClient
 
+from backend.models.employee import CARING_ROLES, Employee
 from backend.models.employee_shift import EmployeeShift
 from backend.models.resident_assignment import AssignmentType, ResidentAssignment
 from backend.repositories.base import SupabaseRepository
@@ -21,6 +22,7 @@ from backend.schemas.resident_assignment import (
     BulkAssignmentFailure,
     BulkAssignmentItem,
     BulkAssignmentOut,
+    BulkEndOut,
     CareTeamMemberOut,
     CareTeamOut,
     CaseloadOut,
@@ -61,6 +63,7 @@ class AssignmentService:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Resident not found")
         if employee is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Employee not found")
+        ensure_can_care(employee)
 
         existing = await self._repository.list_for_resident(resident_id, active_only=True)
 
@@ -155,6 +158,7 @@ class AssignmentService:
         employee = await self._employee_repository.get_by_id(str(data.employee_id))
         if employee is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Employee not found")
+        ensure_can_care(employee)
 
         team = await self._repository.list_for_resident(resident_id, active_only=True)
         if any(str(a.employee_id) == str(data.employee_id) for a in team):
@@ -185,6 +189,23 @@ class AssignmentService:
         if existing is None or str(existing.resident_id) != resident_id:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Assignment not found")
         await self._repository.delete(assignment_id)
+
+    async def end_all(self) -> BulkEndOut:
+        """Close every currently active assignment, facility-wide. Kept as history, not deleted."""
+        active = await self._repository.list_all(0, 5000, active_only=True)
+        today = date.today().isoformat()
+        results = await asyncio.gather(
+            *(
+                self._repository.update(
+                    str(a.id),
+                    {"end_date": today, "active": False},
+                )
+                for a in active
+            ),
+            return_exceptions=True,
+        )
+        ended = sum(1 for r in results if not isinstance(r, Exception))
+        return BulkEndOut(ended_count=ended, failed_count=len(results) - ended)
 
 
     async def get_care_team(self, resident_id: str) -> CareTeamOut:
@@ -376,7 +397,7 @@ class AssignmentService:
         )
 
         active_residents = [r for r in residents if r.active is not False]
-        active_employees = [e for e in employees if e.active]
+        active_employees = [e for e in employees if e.active and e.role in CARING_ROLES]
 
         carers_by_resident: dict[str, list[ResidentAssignment]] = {}
         loaded_employees: set[str] = set()
@@ -434,6 +455,21 @@ class AssignmentService:
             average_caseload=average,
             unassigned=unassigned,
             staff_without_caseload=staff_without_caseload,
+        )
+
+
+def ensure_can_care(employee: Employee) -> None:
+    """Managers, administrators, kitchen and laundry staff are never put on a care team."""
+    if not employee.active:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"{employee.first_name} {employee.last_name} is not an active employee",
+        )
+    if employee.role not in CARING_ROLES:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"{employee.first_name} {employee.last_name} is {employee.role or 'without a job title'}; "
+            "only care staff (" + ", ".join(sorted(CARING_ROLES)) + ") can be assigned to residents",
         )
 
 

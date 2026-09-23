@@ -798,11 +798,7 @@
 
 /* ---------------------------------------------------------------------- */
 /* Algorithm output: weights, comparisons and solved allocations            */
-/*                                                                         */
-/* These used to dress a standalone Algorithms page. That page is gone —    */
-/* nobody visits a screen to admire an algorithm — so the same vocabulary   */
-/* now serves the places the work actually surfaces: the allocation plan on */
-/* Coverage and the weight disclosure on a resident's risk score.           */
+/* (leftover from the old standalone Algorithms page, reused here)          */
 /* ---------------------------------------------------------------------- */
 
 .algo-panel {
@@ -872,27 +868,6 @@
   color: var(--color-text-muted);
 }
 
-/* Consistency ratio verdict */
-.algo-verdict {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
-  margin: var(--space-5) 0;
-  max-width: 80ch;
-}
-
-.algo-verdict.is-ok {
-  background: var(--color-tone-success-bg);
-  color: var(--color-tone-success-text);
-}
-
-.algo-verdict.is-bad {
-  background: var(--color-tone-danger-bg);
-  color: var(--color-tone-danger-text);
-}
-
 /* Weight bars */
 .algo-weight-list {
   list-style: none;
@@ -934,22 +909,142 @@
   color: var(--color-text-muted);
 }
 
-/* Pairwise matrix */
-.algo-matrix td,
-.algo-matrix th[scope="row"] {
-  font-variant-numeric: tabular-nums;
-  text-align: center;
+/* Resident Clinical Risk Card (SAW Model) */
+.risk-card {
+  margin-bottom: var(--space-4);
+  border-left: 3px solid var(--color-primary);
 }
 
-.algo-matrix th[scope="row"] {
-  text-align: left;
-  font-weight: 500;
-  white-space: nowrap;
+.risk-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
-.algo-matrix-diagonal {
+.risk-score-overview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.risk-score-dial {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.risk-score-number {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-display);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.risk-score-max {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.risk-score-progress-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.risk-meter-track {
+  height: 10px;
   background: var(--color-surface-alt);
-  color: var(--color-text-faint);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-bottom: var(--space-1);
+}
+
+.risk-meter-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+.risk-meter-low { background: var(--color-tone-success-text); }
+.risk-meter-medium { background: var(--color-tone-info-text); }
+.risk-meter-high { background: var(--color-tone-warning-text); }
+.risk-meter-critical { background: var(--color-tone-danger-text); }
+
+.risk-breakdown-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.risk-breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.risk-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.risk-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.risk-breakdown-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.risk-breakdown-policy {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.risk-breakdown-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.risk-sub-track {
+  flex: 1;
+  height: 6px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.risk-sub-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+}
+
+.risk-sub-low { background: var(--color-tone-success-text); }
+.risk-sub-medium { background: var(--color-tone-info-text); }
+.risk-sub-high { background: var(--color-tone-warning-text); }
+.risk-sub-critical { background: var(--color-tone-danger-text); }
+
+.risk-breakdown-pts {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
 }
 
 @media (max-width: 720px) {
@@ -958,6 +1053,14 @@
   }
   .algo-weight-bar {
     grid-column: 1 / -1;
+  }
+  .risk-breakdown-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+  .risk-breakdown-bar-wrap {
+    width: 100%;
   }
 }
 
@@ -1043,6 +1146,63 @@
 
 .suggestion-person .suggestion-reason {
   font-size: var(--font-size-xs);
+}
+
+.suggestion-person-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.suggestion-rank-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  line-height: 1.2;
+}
+
+.saw-score-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  line-height: 1.2;
+}
+
+.suggestion-breakdown-details {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+}
+
+.suggestion-breakdown-details summary {
+  color: var(--color-secondary);
+  cursor: pointer;
+}
+
+.suggestion-breakdown-details summary:hover {
+  text-decoration: underline;
+}
+
+.suggestion-breakdown-grid {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-1) 0;
+}
+
+.suggestion-breakdown-item {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 11px;
 }
 
 @media (max-width: 640px) {

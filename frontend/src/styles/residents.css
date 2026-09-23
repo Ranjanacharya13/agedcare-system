@@ -603,6 +603,23 @@
   overflow: hidden;
   white-space: nowrap;
 }
+/* Hourly care visit, drawn inside the carer's shift bar */
+.day-cal-visit {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  background: var(--color-secondary, #e8765c);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-decoration: none;
+  z-index: 1;
+}
 .day-cal-off {
   margin: var(--space-4) 0 0;
   display: flex;
@@ -637,4 +654,20 @@
 .picker-shift.off {
   background: #f4cfcf;
   color: #8a2b2b;
+}
+
+/* Result of assigning from a suggestion: was today's hour booked? */
+.suggestion-booked {
+  margin: var(--space-2) 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+.suggestion-booked.tone-success {
+  background: var(--color-tone-success-bg);
+  color: var(--color-tone-success-text);
+}
+.suggestion-booked.tone-warning {
+  background: var(--color-tone-warning-bg);
+  color: var(--color-tone-warning-text);
 }

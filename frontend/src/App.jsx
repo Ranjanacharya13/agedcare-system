@@ -16,6 +16,7 @@ import ComplaintsPage from "./pages/ComplaintsPage.jsx";
 import AppointmentsPage from "./pages/AppointmentsPage.jsx";
 import AuditLogPage from "./pages/AuditLogPage.jsx";
 import CoveragePage from "./pages/CoveragePage.jsx";
+import RosterPage from "./pages/RosterPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
@@ -25,8 +26,7 @@ export default function App() {
 
   return (
     <AuthProvider>
-      {/* Keyed on the path so a screen that throws recovers when the user
-          navigates away, instead of staying broken until a page reload. */}
+      {/* keyed on the path so a broken screen recovers on navigation, not just on reload */}
       <ErrorBoundary resetKey={location.pathname}>
         <Routes>
           <Route path="/" element={<PublicLandingPage />} />
@@ -96,6 +96,14 @@ export default function App() {
               element={
                 <RequireRole group="assignments">
                   <CoveragePage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="roster"
+              element={
+                <RequireRole group="employee_roster">
+                  <RosterPage />
                 </RequireRole>
               }
             />

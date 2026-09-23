@@ -19,20 +19,13 @@ class RiskScoreOut(BaseModel):
     breakdown: dict[str, RiskScoreBreakdownItem]
 
 
-class AHPCriterionOut(BaseModel):
+class CriterionWeightOut(BaseModel):
     criterion: str
     weight: float
     percentage: float
 
 
 class RiskWeightModelOut(BaseModel):
-
     method: str
-    criteria: list[AHPCriterionOut]
-    comparison_matrix: list[list[float]]
-    lambda_max: float
-    consistency_index: float
-    consistency_ratio: float
-    consistency_threshold: float
-    is_consistent: bool
-    verdict: str
+    weights: dict[str, float]
+    criteria: list[CriterionWeightOut]

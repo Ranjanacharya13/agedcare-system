@@ -20,6 +20,7 @@ from backend.api.v1.endpoints import (
 from backend.api.v1.parent_scoped_router import build_parent_scoped_routers
 from backend.schemas.assistance import AssistanceCreate, AssistanceOut, AssistanceUpdate
 from backend.schemas.behaviour import BehaviourCreate, BehaviourOut, BehaviourUpdate
+from backend.schemas.care_visit import CareVisitCreate, CareVisitOut, CareVisitUpdate
 from backend.schemas.bowel_chart import BowelChartCreate, BowelChartOut, BowelChartUpdate
 from backend.schemas.employee_availability import (
     AvailabilityCreate,
@@ -198,6 +199,14 @@ _RESIDENT_RESOURCES = [
         IncidentOut,
         deps.get_incident_service,
         "resident_charts",
+    ),
+    (
+        "care-visits",
+        CareVisitCreate,
+        CareVisitUpdate,
+        CareVisitOut,
+        deps.get_care_visit_service,
+        "assignments",
     ),
 ]
 

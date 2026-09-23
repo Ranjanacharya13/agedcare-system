@@ -12,14 +12,13 @@ export class ApiError extends Error {
     this.body = body;
   }
 
-  /** Field-level errors from a FastAPI 422, as {fieldName: message}.
-   *  Lets a form put the message next to the input that caused it instead of
-   *  showing one opaque banner at the top. */
+  /** Field-level errors from a FastAPI 422, as {fieldName: message}, so a form can
+   *  show the message next to the input instead of one banner at the top. */
   get fieldErrors() {
     const detail = this.body?.detail;
     if (!Array.isArray(detail)) return {};
     return detail.reduce((acc, item) => {
-      // loc is like ["body", "email"]; the last entry is the field.
+      // loc is ["body", "email"] etc - last entry is the field name
       const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : null;
       if (field && !acc[field]) acc[field] = item.msg;
       return acc;
@@ -34,9 +33,8 @@ export class TimeoutError extends ApiError {
   }
 }
 
-/** Raised when a request is deliberately cancelled (component unmounted, or a
- *  newer request superseded this one). Callers should swallow these — they are
- *  not failures and must never surface as an error banner. */
+/** Request was cancelled (component unmounted, or superseded by a newer request) -
+ *  callers should swallow this, not show it as an error. */
 export class AbortedError extends Error {
   constructor() {
     super("Request aborted");

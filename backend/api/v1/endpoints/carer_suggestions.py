@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query
 
 from backend.api.deps import get_carer_matching_service
@@ -11,10 +13,12 @@ router = APIRouter()
 async def suggested_carers(
     resident_id: str,
     limit: int = Query(default=5, ge=1, le=20),
+    day_start: datetime | None = None,
+    day_end: datetime | None = None,
     service: CarerMatchingService = Depends(get_carer_matching_service),
 ):
-    """Who could take this resident, best first."""
-    return await service.rank_candidates_for_resident(resident_id, limit)
+    """Who could take this resident today, best first. The browser sends its local day."""
+    return await service.rank_candidates_for_resident(resident_id, limit, day_start, day_end)
 
 
 @router.post("/coverage/suggest-assignments", response_model=SuggestAssignmentsOut)

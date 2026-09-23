@@ -14,10 +14,12 @@ from datetime import datetime
 from supabase import AsyncClient
 
 from backend.models.employee import Employee
+from backend.models.employee_availability import EmployeeAvailability
 from backend.models.employee_shift import EmployeeShift
 from backend.repositories.base import SupabaseRepository
 from backend.repositories.employee_repository import EmployeeRepository
 from backend.schemas.roster import RosterAssignmentOut, RosterOptimiseOut
+from backend.services.availability import group_by_employee, is_available
 from backend.services.employee_care_load import get_employee_care_load
 from backend.services.risk_scoring import RiskScoringService
 from backend.services.shift_matching import (
@@ -43,6 +45,9 @@ class RosterOptimisationService:
             EmployeeShift,
             order_column="shift_start",
             parent_field="employee_id",
+        )
+        self._availability_repository = SupabaseRepository(
+            client, "employee_availability", EmployeeAvailability, parent_field="employee_id"
         )
 
     async def _load_shifts(
@@ -108,7 +113,11 @@ class RosterOptimisationService:
             return result
 
         week_key = shifts[0].shift_start.isocalendar()[:2]
-        profiles = await asyncio.gather(*(self._employee_profile(e, week_key) for e in candidates))
+        profiles, availability = await asyncio.gather(
+            asyncio.gather(*(self._employee_profile(e, week_key) for e in candidates)),
+            self._availability_repository.list_all(0, 5000),
+        )
+        availability_by_employee = group_by_employee(availability)
 
         # Shifts already recommended in this run, per employee: (start, end).
         planned: dict[str, list[tuple[datetime, datetime]]] = {str(e.id): [] for e in candidates}
@@ -117,6 +126,10 @@ class RosterOptimisationService:
             rows = []
             for profile in profiles:
                 employee = profile["employee"]
+                if not is_available(
+                    availability_by_employee.get(str(employee.id), []), shift.shift_start
+                ):
+                    continue
                 busy = [
                     (s.shift_start, s.shift_end)
                     for s in profile["shifts"]
@@ -141,13 +154,22 @@ class RosterOptimisationService:
                     }
                 )
 
-            best = rank_shift_candidates(rows)[0]
             shift_info = dict(
                 shift_id=shift.id,
                 shift_start=shift.shift_start,
                 shift_end=shift.shift_end,
                 shift_role=shift.role,
             )
+            if not rows:
+                # Nobody who said they can work this day is left in the pool.
+                result.assignments.append(
+                    RosterAssignmentOut(
+                        **shift_info, unassigned_reason="No candidate is available that day"
+                    )
+                )
+                continue
+
+            best = rank_shift_candidates(rows)[0]
             if best["conflict"]:
                 # Conflict is the first priority, so if the best still conflicts, all do.
                 result.assignments.append(

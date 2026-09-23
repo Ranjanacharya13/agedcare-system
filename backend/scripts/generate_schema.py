@@ -14,6 +14,7 @@ from backend.models.assistance import ResidentAssistance
 from backend.models.audit_log import AuditLog
 from backend.models.behaviour import ResidentBehaviour
 from backend.models.bowel_chart import ResidentBowelChart
+from backend.models.care_visit import ResidentCareVisit
 from backend.models.complaint import ComplaintFeedback
 from backend.models.employee import Employee
 from backend.models.employee_availability import EmployeeAvailability
@@ -48,6 +49,11 @@ TABLES = [
     (
         "resident_assignments",
         ResidentAssignment,
+        {"resident_id": "residents", "employee_id": "employees"},
+    ),
+    (
+        "resident_care_visits",
+        ResidentCareVisit,
         {"resident_id": "residents", "employee_id": "employees"},
     ),
     ("resident_behaviour", ResidentBehaviour, {"resident_id": "residents", "recorded_by": "employees"}),

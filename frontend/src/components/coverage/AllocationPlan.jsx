@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { suggestAssignments } from "../../api/algorithms.js";
-import { createAssignmentsInBulk } from "../../api/assignments.js";
+import { createAssignmentsInBulk, bookNextFreeHour } from "../../api/assignments.js";
+import { dayBounds } from "../../hooks/useStaffStatus.js";
 import { isAborted } from "../../api/client.js";
+import { localDateString } from "../../utils/format.js";
 import Button from "../common/Button.jsx";
 import Skeleton from "../common/Skeleton.jsx";
 import ErrorBanner from "../common/ErrorBanner.jsx";
+import StatusBadge from "../common/StatusBadge.jsx";
 
 export default function AllocationPlan({ onApplied }) {
   const { can } = useAuth();
@@ -50,6 +53,7 @@ export default function AllocationPlan({ onApplied }) {
           resident_id,
           employee_id: choice.employeeId,
           assignment_type: "Primary",
+          start_date: localDateString(),
         })),
     [choices]
   );
@@ -59,6 +63,13 @@ export default function AllocationPlan({ onApplied }) {
     setError(null);
     try {
       const outcome = await createAssignmentsInBulk(confirmed);
+      // book each new carer's next free hour too, so it shows up on today's dashboard
+      const dayRange = dayBounds(new Date());
+      await Promise.all(
+        outcome.created.map((row) =>
+          bookNextFreeHour(row.resident_id, row.employee_id, dayRange).catch(() => null)
+        )
+      );
       setPlan(null);
       setChoices({});
       onApplied?.(outcome);
@@ -75,9 +86,10 @@ export default function AllocationPlan({ onApplied }) {
     <section className="algo-panel">
       <h2 className="section-title">Suggest a carer for each</h2>
       <p className="text-muted">
-        Ranks carers for each resident by workload and clinical fit, taking the highest-risk
-        residents first and counting each pick towards that carer's load. Change anyone you
-        disagree with, untick anyone you are not ready to decide, then confirm.
+        Ranks carers for each resident using Simple Additive Weighting (SAW) on workload and clinical fit,
+        taking the highest-risk residents first and counting each pick towards that carer's load. Hard rules
+        like caring role eligibility are prioritized lexicographically. Change anyone you disagree with,
+        untick anyone you are not ready to decide, then confirm.
       </p>
 
       <Button variant="secondary" onClick={run} disabled={running || saving}>
@@ -133,8 +145,8 @@ export default function AllocationPlan({ onApplied }) {
               <p className="algo-meta">
                 {plan.residents_needing_a_carer} resident(s) ranked against{" "}
                 {plan.candidates_considered} staff member(s), highest-risk resident first. Each
-                carer is scored by weighted criteria (workload and clinical fit), and a caring
-                role always ranks ahead of a non-clinical one.{" "}
+                carer is scored by Simple Additive Weighting (SAW on workload and clinical fit), and a caring
+                role always ranks ahead of a non-clinical one via lexicographic priority.{" "}
                 {plan.unmatched > 0 && (
                   <strong>
                     {plan.unmatched} resident(s) could not be matched at all &mdash; there are
@@ -168,8 +180,14 @@ function PlanRow({ row, choice, onChange }) {
         />
       </td>
       <td>
-        {row.first_name} {row.last_name}
-        {row.room_number && <small className="algo-subtle">Room {row.room_number}</small>}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          <strong>{row.first_name} {row.last_name}</strong>
+          {row.risk_band && <StatusBadge value={row.risk_band} badgeKind="riskBand" />}
+        </div>
+        <small className="algo-subtle">
+          {row.room_number ? `Room ${row.room_number}` : "No room"}
+          {row.risk_score !== null && row.risk_score !== undefined && ` · Risk score ${row.risk_score}`}
+        </small>
       </td>
       <td>
         {options.length === 0 ? (
@@ -189,8 +207,7 @@ function PlanRow({ row, choice, onChange }) {
                 </option>
               ))}
             </select>
-            {/* Named rather than merely styled, so it is obvious on review
-                which lines are the user's own decisions. */}
+            {/* text label, not just styling, so edited lines are obvious on review */}
             {changed && <small className="algo-subtle">changed from suggestion</small>}
           </>
         )}
@@ -202,8 +219,7 @@ function PlanRow({ row, choice, onChange }) {
   );
 }
 
-/** What actually happened when the plan was confirmed. Rendered by the page
- *  rather than the panel, so it outlives the gaps it just filled. */
+/** Rendered by the page, not the panel, so the result survives even if confirming filled the last gap. */
 export function ApplyResult({ result }) {
   const created = result.created.length;
   const tone = result.failed.length > 0 ? "plan-result has-failures" : "plan-result";
@@ -214,9 +230,7 @@ export function ApplyResult({ result }) {
         <strong>
           {created} carer{created === 1 ? "" : "s"} assigned.
         </strong>{" "}
-        {/* Only claim the whole job is done when it is. Saying "each
-            resident now has a key worker" above a list of ones who do not
-            is how a screen teaches people to stop reading it. */}
+        {/* don't claim the job is done above a list of residents it isn't done for */}
         {created > 0 &&
           result.failed.length === 0 &&
           "Each resident now has a named key worker on their care team."}

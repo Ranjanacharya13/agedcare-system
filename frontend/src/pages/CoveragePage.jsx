@@ -1,8 +1,13 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAsync } from "../hooks/useAsync.js";
-import { getCoverageReport } from "../api/assignments.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { getCoverageReport, endAllAssignments } from "../api/assignments.js";
+import { isAborted } from "../api/client.js";
+import StatusBadge from "../components/common/StatusBadge.jsx";
 import Table from "../components/common/Table.jsx";
+import Button from "../components/common/Button.jsx";
+import Modal from "../components/common/Modal.jsx";
 import Skeleton from "../components/common/Skeleton.jsx";
 import ErrorBanner from "../components/common/ErrorBanner.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
@@ -10,14 +15,33 @@ import AllocationPlan, { ApplyResult } from "../components/coverage/AllocationPl
 
 export default function CoveragePage() {
   const navigate = useNavigate();
+  const { can } = useAuth();
   const [version, setVersion] = useState(0);
   const [applied, setApplied] = useState(null);
+  const [confirmingClearAll, setConfirmingClearAll] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
+  const [clearAllError, setClearAllError] = useState(null);
   const load = useCallback(
     (signal) => getCoverageReport({ signal }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [version]
   );
   const { data, loading, error } = useAsync(load, [load]);
+
+  const handleClearAllStaff = async () => {
+    setClearingAll(true);
+    setClearAllError(null);
+    try {
+      await endAllAssignments();
+      setApplied(null);
+      setVersion((v) => v + 1);
+      setConfirmingClearAll(false);
+    } catch (err) {
+      if (!isAborted(err)) setClearAllError(err);
+    } finally {
+      setClearingAll(false);
+    }
+  };
 
   if (loading) return <Skeleton rows={6} />;
   if (error) return <ErrorBanner error={error} />;
@@ -38,6 +62,21 @@ export default function CoveragePage() {
           {row.room_number && <small className="algo-subtle">Room {row.room_number}</small>}
         </span>
       ),
+    },
+    {
+      key: "risk",
+      label: "Risk Level",
+      render: (row) =>
+        row.risk_band ? (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <StatusBadge value={row.risk_band} badgeKind="riskBand" />
+            {row.risk_score !== null && row.risk_score !== undefined && (
+              <small className="algo-subtle">{row.risk_score} pts</small>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
     },
     {
       key: "gap",
@@ -66,12 +105,23 @@ export default function CoveragePage() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Coverage</h1>
-      <p className="text-muted page-intro">
-        Every resident should have one named primary carer &mdash; a key worker who knows them
-        and is the family&rsquo;s point of contact. This page shows where that is missing, and
-        which staff are carrying no residents.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-4)" }}>
+        <div>
+          <h1 className="page-title">Coverage</h1>
+          <p className="text-muted page-intro">
+            Every resident should have one named primary carer &mdash; a key worker who knows
+            them and is the family&rsquo;s point of contact. This page shows where that is
+            missing, and which staff are carrying no residents.
+          </p>
+        </div>
+        {can("assignments", "write") && (
+          <Button variant="danger" size="sm" onClick={() => setConfirmingClearAll(true)}>
+            Clear all staff from residents
+          </Button>
+        )}
+      </div>
+
+      <ErrorBanner error={clearAllError} />
 
       <div className="algo-stat-row">
         <div className={`algo-stat${coverage < 100 ? " algo-stat-accent" : ""}`}>
@@ -143,6 +193,33 @@ export default function CoveragePage() {
         </>
       ) : (
         <EmptyState title="Every active staff member has a caseload" />
+      )}
+
+      {confirmingClearAll && (
+        <Modal
+          title="Clear all staff from residents?"
+          onClose={() => setConfirmingClearAll(false)}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmingClearAll(false)}
+                disabled={clearingAll}
+              >
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleClearAllStaff} disabled={clearingAll}>
+                {clearingAll ? "Clearing…" : "Clear all"}
+              </Button>
+            </>
+          }
+        >
+          <p>
+            This ends every active carer assignment for every resident, facility-wide.
+            Assignments are kept as history, not deleted, but every resident will show as
+            unassigned until reassigned. This can&rsquo;t be undone.
+          </p>
+        </Modal>
       )}
     </div>
   );

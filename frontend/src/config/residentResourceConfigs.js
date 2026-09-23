@@ -1,4 +1,4 @@
-import { RISK_LEVEL, ASSISTANCE_LEVEL, INCIDENT_SEVERITY, INCIDENT_STATUS } from "./enums.js";
+import { RISK_LEVEL, ASSISTANCE_LEVEL, INCIDENT_SEVERITY, INCIDENT_STATUS, CARING_ROLES } from "./enums.js";
 
 const employeeRef = {
   type: "reference",
@@ -164,7 +164,33 @@ export const medicalHistory = {
   ],
 };
 
+export const careVisits = {
+  slug: "care-visits",
+  label: "Care Schedule",
+  parent: { resource: "residents" },
+  timestampField: "start_at",
+  fields: [
+    {
+      name: "employee_id",
+      label: "Carer",
+      type: "reference",
+      required: true,
+      reference: {
+        resource: "employees",
+        scope: "global",
+        labelFields: ["first_name", "last_name", "role"],
+        filter: (e) => e.active !== false && CARING_ROLES.includes(e.role),
+      },
+    },
+    { name: "start_at", label: "From", type: "datetime", required: true },
+    { name: "end_at", label: "Until", type: "datetime", required: true },
+    { name: "task", label: "Task", type: "text" },
+    { name: "notes", label: "Notes", type: "textarea" },
+  ],
+};
+
 export const residentResourceConfigs = [
+  careVisits,
   behaviour,
   medications,
   bowelChart,

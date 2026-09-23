@@ -35,6 +35,7 @@ from backend.repositories.employee_repository import EmployeeRepository
 from backend.repositories.resident_repository import ResidentRepository
 from backend.services.base import CrudService, ParentScopedService
 from backend.services.assignment_service import AssignmentService
+from backend.services.care_visit_service import CareVisitService
 from backend.services.carer_matching import CarerMatchingService
 from backend.services.risk_scoring import RiskScoringService
 from backend.services.roster_optimisation import RosterOptimisationService
@@ -72,6 +73,10 @@ def get_risk_scoring_service() -> RiskScoringService:
 def get_assignment_service() -> AssignmentService:
     client = get_db()
     return AssignmentService(client, RiskScoringService(client))
+
+
+def get_care_visit_service() -> CareVisitService:
+    return CareVisitService(get_db())
 
 
 def get_carer_matching_service() -> CarerMatchingService:

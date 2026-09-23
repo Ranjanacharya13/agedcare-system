@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -16,6 +17,10 @@ class CarerCandidateOut(BaseModel):
     current_caseload: int
     current_risk_load: int
     role_suitable: bool = True
+    #: Rostered on the day being planned (today unless the caller says otherwise).
+    on_shift_today: bool = False
+    shift_start: datetime | None = None
+    shift_end: datetime | None = None
     #: SAW score, 0..1, higher is better.
     saw_score: float
     rank: int

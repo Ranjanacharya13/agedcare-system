@@ -31,7 +31,8 @@ export default function ReferenceSelect({ field, value, onChange, parentId }) {
     [scope, parentId]
   );
 
-  const items = scope === "parent" ? parentScopedItems || [] : resource === "residents" ? residents : employees;
+  const all = scope === "parent" ? parentScopedItems || [] : resource === "residents" ? residents : employees;
+  const items = field.reference.filter ? all.filter(field.reference.filter) : all;
 
   const options = useMemo(() => {
     const withLabels = items.map((item) => ({ id: item.id, label: optionLabel(item, labelFields) }));

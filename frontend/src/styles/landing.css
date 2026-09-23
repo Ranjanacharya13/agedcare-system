@@ -223,7 +223,7 @@
   cursor: not-allowed;
 }
 
-/* Text link with a trailing arrow — the reference site's "Learn more" */
+/* "Learn more" style text link with a trailing arrow */
 .landing-arrow-link {
   display: inline-flex;
   align-items: center;
@@ -360,7 +360,7 @@
   gap: var(--l-space-4);
 }
 
-/* Phone rendered as a bordered pill, the way the reference site does it */
+/* Phone number rendered as a bordered pill */
 .landing-header-phone {
   display: inline-flex;
   align-items: center;
@@ -525,7 +525,7 @@
   aspect-ratio: 5 / 4;
 }
 
-/* Small overlapping quote plate, the reference site's warm-detail move */
+/* Small overlapping quote plate */
 .landing-hero-badge {
   position: absolute;
   left: var(--l-space-5);
